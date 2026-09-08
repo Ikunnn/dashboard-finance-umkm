@@ -34,6 +34,21 @@ import { sha256Hex } from '../utils/hash';
 const toppingPriceMap: Record<string, number> = Object.fromEntries(POODY_TOPPINGS.map(t => [t.id, t.price]));
 const getToppingsTotal = (toppings?: string[]) => (toppings || []).reduce((s, id) => s + (toppingPriceMap[id] || 0), 0);
 
+// Poody recipe per cup — warung-friendly auto-kurang
+const POODY_RECIPE = {
+  M: { powderKg: 0.04, susuL: 0.15, cupId: 'bb-cup-m' as const, sendokId: 'bb-sendok' as const },
+  L: { powderKg: 0.06, susuL: 0.22, cupId: 'bb-cup-l' as const, sendokId: 'bb-sendok' as const },
+} as const;
+const TOPPING_BAHAN_MAP: Record<string, string> = {
+  'keju': 'bb-topping-keju',
+  'oreo crumb': 'bb-topping-oreo',
+  'red velvet crumb': 'bb-topping-mix',
+  'matcha crumb': 'bb-topping-mix',
+  'regal crumb': 'bb-topping-mix',
+  'froot loops': 'bb-topping-mix',
+  'koko krunch': 'bb-topping-mix',
+};
+
 export type NavTab =
   | 'dashboard'
   | 'kasir'
@@ -595,6 +610,72 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }),
       created_at: date.toISOString(),
     };
+
+    // === STOK AUTO-KURANG (resep Poody per cup) ===
+    try {
+      const dedup: Record<string, { qty: number; satuan: string }> = {};
+      const addDedup = (bahanId: string, qty: number) => {
+        if (!bahanId || qty <= 0) return;
+        const b = bahanBaku.find(x => x.id === bahanId);
+        if (!b) return;
+        if (!dedup[bahanId]) dedup[bahanId] = { qty: 0, satuan: b.satuan };
+        dedup[bahanId].qty += qty;
+      };
+      for (const item of cart) {
+        const sizeKey = item.varian?.nama === 'L' ? 'L' : 'M';
+        const recipe = POODY_RECIPE[sizeKey];
+        const q = item.qty;
+        addDedup('bb-powder', recipe.powderKg * q);
+        addDedup('bb-susu', recipe.susuL * q);
+        addDedup(recipe.cupId, 1 * q);
+        addDedup(recipe.sendokId, 1 * q);
+        for (const tp of (item.toppings || [])) {
+          const bahanId = TOPPING_BAHAN_MAP[tp];
+          if (bahanId) addDedup(bahanId, 0.08 * q);
+        }
+      }
+      // apply ke bahanBaku & riwayat
+      if (Object.keys(dedup).length) {
+        const now = new Date().toISOString();
+        const today = getTodayDateString();
+        // round powder/susu/topping to 2 decimals for display, but keep precise for stock
+        const logs: typeof riwayatStok = [];
+        setBahanBaku(prev => prev.map(b => {
+          const d = dedup[b.id];
+          if (!d) return b;
+          const newStock = Math.max(0, +(b.stok_saat_ini - d.qty).toFixed(3));
+          return { ...b, stok_saat_ini: newStock, updated_at: now };
+        }));
+        for (const [bahanId, d] of Object.entries(dedup)) {
+          const b = bahanBaku.find(x => x.id === bahanId);
+          if (!b) continue;
+          logs.push({
+            id: 'log-' + Date.now() + '-' + bahanId,
+            bahan_id: bahanId,
+            bahan_nama: b.nama_bahan,
+            tipe: 'KELUAR',
+            jumlah: +d.qty.toFixed(3),
+            satuan: d.satuan,
+            keterangan: `Auto-kurang penjualan ${newTrx.nomor_transaksi} (${cart.length} item)`,
+            tanggal: today,
+            user_nama: currentUser.nama,
+            created_at: now,
+          } as any);
+        }
+        if (logs.length) setRiwayatStok(prev => [...logs, ...prev]);
+        // warning if any below minimum after deduction
+        setTimeout(() => {
+          for (const [bahanId, d] of Object.entries(dedup)) {
+            const b = bahanBaku.find(x => x.id === bahanId);
+            if (!b) continue;
+            const after = b.stok_saat_ini - d.qty;
+            if (after <= b.stok_minimum) {
+              showToast(`⚠️ Stok ${b.nama_bahan} menipis (${after.toFixed(2)} ${b.satuan}) — segera restock!`, 'warning');
+            }
+          }
+        }, 300);
+      }
+    } catch (e) { console.error('auto-stock failed', e); }
 
     // Save transaction
     setTransaksi(prev => [newTrx, ...prev]);
