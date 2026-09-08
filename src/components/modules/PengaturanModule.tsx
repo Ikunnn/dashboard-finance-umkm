@@ -1,5 +1,8 @@
 import React, { useState } from 'react';
 import {
+  Archive,
+  Database,
+  Download,
   Eye,
   EyeOff,
   Pencil,
@@ -10,6 +13,7 @@ import {
   Store,
   Tag,
   Trash2,
+  Upload,
   UserPlus,
   Users,
   X,
@@ -174,6 +178,50 @@ export const PengaturanModule: React.FC = () => {
     if (!namaKategoriBaru.trim()) return;
     addKategori(namaKategoriBaru.trim(), tipeKategoriBaru);
     setNamaKategoriBaru('');
+  };
+
+  // Backup 1-klik: export/import JSON semua data warung
+  const BACKUP_KEYS = ['umkm_usaha','umkm_users','umkm_produk','umkm_bahan_baku','umkm_riwayat_stok','umkm_transaksi','umkm_pemasukan','umkm_pengeluaran','umkm_kategori'] as const;
+  const handleExportBackup = () => {
+    const payload: Record<string, any> = {};
+    for (const k of BACKUP_KEYS) {
+      const raw = localStorage.getItem(k);
+      try { payload[k] = raw ? JSON.parse(raw) : null; } catch { payload[k] = raw; }
+    }
+    const out = { version: 1, app: 'Poody Warung OS', exportedAt: new Date().toISOString(), data: payload };
+    const blob = new Blob([JSON.stringify(out, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const d = new Date().toISOString().slice(0,10);
+    a.href = url; a.download = `poody-backup-${d}.json`;
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+    showToast('Backup JSON berhasil diunduh', 'success');
+  };
+  const handleImportBackup = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const parsed = JSON.parse(reader.result as string);
+        const data = parsed.data || parsed; // support both wrapped and raw
+        const hasAnyKey = BACKUP_KEYS.some(k => k in data);
+        if (!hasAnyKey) { showToast('File backup tidak valid', 'error'); return; }
+        if (!confirm('Restore backup? Data sekarang akan diganti dengan isi file. Lanjutkan?')) return;
+        for (const k of BACKUP_KEYS) {
+          if (k in data && data[k] !== null && data[k] !== undefined) {
+            localStorage.setItem(k, JSON.stringify(data[k]));
+          }
+        }
+        showToast('Restore berhasil — halaman akan dimuat ulang', 'success');
+        setTimeout(() => location.reload(), 800);
+      } catch (err) {
+        showToast('Gagal baca file backup — pastikan JSON valid', 'error');
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
   };
 
   return (
@@ -519,7 +567,33 @@ export const PengaturanModule: React.FC = () => {
         </div>
       )}
 
-      {/* 3. Manajemen Kategori */}
+      {/* 3. Backup 1-Klik (OWNER only) */}
+      <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-4">
+        <div className="flex items-center gap-2 pb-3 border-b border-slate-100">
+          <Database className="w-4 h-4 text-emerald-600" />
+          <h3 className="font-bold text-sm text-slate-900">Backup & Restore</h3>
+          <span className="ml-auto text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-full">1-klik</span>
+        </div>
+        <p className="text-xs text-slate-500 leading-relaxed">Export semua data warung (transaksi, stok, pemasukan, user, kategori) jadi 1 file JSON. Simpan di Google Drive. Kalau HP hilang / ganti HP, Restore file itu — semua balik.</p>
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={handleExportBackup}
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs"
+          >
+            <Download className="w-4 h-4" /> Export Backup (.json)
+          </button>
+          <label className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-bold cursor-pointer">
+            <Upload className="w-4 h-4" /> Restore Backup
+            <input type="file" accept=".json,application/json" onChange={handleImportBackup} className="hidden" />
+          </label>
+        </div>
+        <div className="flex items-center gap-2 text-[11px] text-slate-400 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2">
+          <Archive className="w-3.5 h-3.5 shrink-0" />
+          <span>Tips: Export tiap <b className="text-slate-600">minggu</b> atau sebelum tutup bulan. File aman dibuka offline.</span>
+        </div>
+      </div>
+
+      {/* 4. Manajemen Kategori */}
       <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-4">
         <div className="flex items-center justify-between pb-3 border-b border-slate-100">
           <div className="flex items-center gap-2">
