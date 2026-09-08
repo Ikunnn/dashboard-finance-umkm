@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Eye, EyeOff, LogIn, Shield, Store } from 'lucide-react';
+import { Eye, EyeOff, LogIn } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 
 export const LoginPage: React.FC = () => {
@@ -88,18 +88,6 @@ export const LoginPage: React.FC = () => {
             )}
             {loading ? 'Memeriksa...' : 'Masuk'}
           </button>
-
-          <div className="pt-2 border-t border-slate-100 space-y-2">
-            <p className="text-[11px] font-bold text-slate-600 flex items-center gap-1">
-              <Shield className="w-3 h-3" /> Demo akun awal:
-            </p>
-            <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-[11px] leading-relaxed text-slate-600">
-              <b>Rizqan (OWNER)</b><br />
-              rizqan@poody.id / <code className="bg-white px-1 py-0.5 rounded border">rizqan123</code>
-              <br />
-              <span className="text-slate-400">Ganti password di Pengaturan → Manajemen Pengguna → Edit</span>
-            </div>
-          </div>
         </form>
 
         <p className="text-center text-[11px] text-slate-400 mt-4">
