@@ -117,15 +117,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, onCloseMobile }) =
         {/* App Brand Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-slate-800">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-emerald-500 flex items-center justify-center text-slate-950 font-black text-base shadow-sm">
-              F
-            </div>
+            <img src="/logo-poody.png" alt="Poody" className="w-8 h-8 rounded-lg object-contain bg-white p-1 shadow-sm shrink-0" />
             <div>
               <span className="font-bold text-white text-sm tracking-tight block">
-                Finance UMKM
+                Poody
               </span>
               <span className="text-[10px] text-slate-400 font-medium tracking-wide block uppercase">
-                Solusi Kasir & Laba Rugi
+                Dessert Cup • Kasir & Laba
               </span>
             </div>
           </div>

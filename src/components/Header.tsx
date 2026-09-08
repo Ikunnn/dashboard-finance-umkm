@@ -80,9 +80,7 @@ export const Header: React.FC<{ onOpenMobileMenu?: () => void }> = ({ onOpenMobi
           </button>
 
           <div className="flex items-center gap-2.5 min-w-0">
-            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-500 text-white flex items-center justify-center font-bold text-base shadow-xs flex-shrink-0">
-              <Store className="w-4 h-4 sm:w-5 sm:h-5" />
-            </div>
+            <img src="/logo-poody.png" alt="Poody" className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl object-contain bg-white p-1.5 shadow-xs shrink-0 border border-slate-100" />
             <div className="min-w-0">
               <div className="flex items-center gap-1.5 sm:gap-2">
                 <h1 className="font-bold text-slate-900 text-xs sm:text-base leading-tight truncate">

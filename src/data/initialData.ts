@@ -7,7 +7,7 @@ export const INITIAL_USAHA: Usaha = {
   jenis_usaha: 'Dessert Cup',
   alamat: 'Jl. Malioboro No. 45, Yogyakarta 55213',
   no_telepon: '0812-0000-0001',
-  logo: 'https://images.unsplash.com/photo-1551024506-0bccd828d307?w=120&auto=format&fit=crop&q=80',
+  logo: '/logo-poody.png',
 };
 
 export const INITIAL_USERS: User[] = [

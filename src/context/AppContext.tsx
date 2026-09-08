@@ -171,6 +171,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       try {
         const parsed = JSON.parse(saved);
         if (parsed.nama_usaha && parsed.nama_usaha.toLowerCase().includes('kopi')) return INITIAL_USAHA;
+        if (parsed.logo && parsed.logo.includes('unsplash')) parsed.logo = INITIAL_USAHA.logo;
         return parsed;
       } catch { return INITIAL_USAHA; }
     }
