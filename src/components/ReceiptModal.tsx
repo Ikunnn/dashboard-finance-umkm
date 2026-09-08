@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { Check, Copy, Download, MessageCircle, Printer, Store, X } from 'lucide-react';
+import { Check, Copy, Download, MessageCircle, Printer, X } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { Transaksi } from '../types';
 import { formatDateIndo, formatRupiah } from '../utils/formatters';
@@ -18,8 +18,72 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ transaksi, onClose }
 
   if (!transaksi) return null;
 
+  const logoSrc = (usaha as any).logo || '/logo-poody.png';
+  const footerText = (usaha as any).footer_struk || 'Terima kasih telah berbelanja di Poody! 🙏';
+
   const handlePrint = () => {
-    window.print();
+    // Thermal 58mm print via new window — logo + footer ikut
+    const itemsHtml = transaksi.items.map(i => `
+      <div style="margin:4px 0;">
+        <div style="font-weight:600;">${i.nama_produk}</div>
+        <div style="display:flex;justify-content:space-between;font-size:10px;color:#444;">
+          <span>${i.qty} × ${formatRupiah(i.harga_satuan)}${i.diskon_item ? ` (Disc -${formatRupiah(i.diskon_item)})` : ''}</span>
+          <span style="font-weight:700;color:#000;">${formatRupiah(i.subtotal)}</span>
+        </div>
+      </div>
+    `).join('');
+
+    const html = `
+<!doctype html>
+<html><head><meta charset="utf-8"><title>${transaksi.nomor_transaksi}</title>
+<style>
+  @page { size: 58mm auto; margin: 3mm 2mm; }
+  *{box-sizing:border-box}
+  body{margin:0;padding:8px;font-family:'Courier New',Courier,monospace;font-size:10px;line-height:1.4;color:#111;background:#fff;}
+  .center{text-align:center}
+  .dash{border-top:1px dashed #000;margin:6px 0}
+  .row{display:flex;justify-content:space-between;gap:8px}
+  .bold{font-weight:700}
+  .sm{font-size:9px;color:#555}
+  img.logo{width:42px;height:42px;object-fit:contain;display:block;margin:0 auto 6px;background:#fff;border-radius:8px;padding:2px;border:1px solid #e5e7eb}
+  h1{font-size:12px;margin:2px 0 0;letter-spacing:0.5px}
+  .addr{font-size:9px;color:#333;white-space:pre-wrap}
+</style></head>
+<body>
+  <div class="center">
+    <img class="logo" src="${logoSrc}" onerror="this.style.display='none'" alt="Poody" />
+    <h1>${usaha.nama_usaha}</h1>
+    <div class="addr">${usaha.alamat || ''}${usaha.no_telepon ? `\nTelp: ${usaha.no_telepon}` : ''}</div>
+  </div>
+  <div class="dash"></div>
+  <div class="row"><span>No</span><span class="bold">${transaksi.nomor_transaksi}</span></div>
+  <div class="row"><span>Waktu</span><span>${formatDateIndo(transaksi.tanggal, true)}</span></div>
+  <div class="row"><span>Kasir</span><span>${transaksi.kasir_nama}</span></div>
+  ${transaksi.catatan ? `<div class="row sm"><span>Catatan</span><span style="text-align:right;max-width:34mm;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${transaksi.catatan}</span></div>` : ''}
+  <div class="dash"></div>
+  ${itemsHtml}
+  <div class="dash"></div>
+  <div class="row"><span>Subtotal</span><span>${formatRupiah(transaksi.total_sebelum_diskon)}</span></div>
+  ${transaksi.diskon_total > 0 ? `<div class="row"><span>Diskon</span><span>-${formatRupiah(transaksi.diskon_total)}</span></div>` : ''}
+  <div class="row bold" style="font-size:11px;padding-top:4px;border-top:1px solid #000;margin-top:4px;"><span>TOTAL</span><span>${formatRupiah(transaksi.total_bayar)}</span></div>
+  <div class="row sm"><span>Bayar (${transaksi.metode_pembayaran})</span><span>${formatRupiah(transaksi.nominal_dibayar)}</span></div>
+  <div class="row sm"><span>Kembali</span><span>${formatRupiah(transaksi.kembalian)}</span></div>
+  <div class="dash"></div>
+  <div class="center" style="font-size:9px;">
+    <div style="font-weight:700;">*** TERIMA KASIH ***</div>
+    <div style="margin-top:4px;">${footerText}</div>
+    <div style="margin-top:4px;color:#666;">Barang yang sudah dibeli tidak dapat ditukar/dikembalikan</div>
+  </div>
+</body></html>`;
+
+    const w = window.open('', '_blank', 'width=380,height=640');
+    if (!w) { window.print(); return; }
+    w.document.open();
+    w.document.write(html);
+    w.document.close();
+    w.focus();
+    // wait for logo load
+    setTimeout(() => { try { w.print(); } catch {} }, 350);
   };
 
   const handleCopyText = () => {
@@ -43,7 +107,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ transaksi, onClose }
       `Bayar   : ${formatRupiah(transaksi.nominal_dibayar)}`,
       `Kembali : ${formatRupiah(transaksi.kembalian)}`,
       `--------------------------------`,
-      `Terima kasih telah berbelanja!`,
+      footerText,
     ];
 
     navigator.clipboard.writeText(lines.join('\n'));
@@ -69,7 +133,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ transaksi, onClose }
       transaksi.items.map(i => `• ${i.qty}x ${i.nama_produk} = ${formatRupiah(i.subtotal)}`).join('\n') +
       `\n\n*Total: ${formatRupiah(transaksi.total_bayar)}* (${transaksi.metode_pembayaran})\n` +
       (transaksi.kembalian > 0 ? `Kembalian: ${formatRupiah(transaksi.kembalian)}\n` : '') +
-      `\nTerima kasih telah berkunjung ke ${usaha.nama_usaha}! 🙏`
+      `\n${footerText}`
     );
 
     const waUrl = `https://wa.me/${targetNumber}?text=${message}`;
@@ -85,7 +149,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ transaksi, onClose }
         <div className="flex items-center justify-between px-4 sm:px-5 py-3 sm:py-4 border-b border-slate-200 bg-slate-50 shrink-0">
           <div className="flex items-center gap-2">
             <Printer className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-600" />
-            <h3 className="font-bold text-slate-800 text-xs sm:text-sm">Struk Pembayaran</h3>
+            <h3 className="font-bold text-slate-800 text-xs sm:text-sm">Struk Pembayaran — 58mm</h3>
           </div>
           <button
             onClick={onClose}
@@ -101,11 +165,9 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ transaksi, onClose }
             ref={receiptRef}
             className="w-full max-w-[340px] bg-white p-4 sm:p-5 rounded-lg shadow-xs border border-slate-200 font-mono text-[11px] leading-relaxed text-slate-800"
           >
-            {/* Store Header */}
+            {/* Store Header with logo */}
             <div className="text-center pb-3 border-b border-dashed border-slate-300">
-              <div className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-700 mx-auto mb-1 flex items-center justify-center font-bold">
-                <Store className="w-4 h-4" />
-              </div>
+              <img src={logoSrc} alt="Poody" className="w-10 h-10 rounded-xl object-contain bg-white border border-slate-200 p-1 mx-auto mb-1.5" onError={(e)=>{(e.target as HTMLImageElement).style.display='none'}} />
               <h4 className="font-bold text-xs uppercase tracking-tight text-slate-900">
                 {usaha.nama_usaha}
               </h4>
@@ -184,7 +246,8 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ transaksi, onClose }
             {/* Footer Greeting */}
             <div className="text-center pt-3 text-[10px] text-slate-500">
               <p className="font-semibold">*** TERIMA KASIH ***</p>
-              <p className="text-[9px] mt-0.5">Barang yang sudah dibeli tidak dapat ditukar/dikembalikan</p>
+              <p className="text-[10px] mt-1 leading-snug">{footerText}</p>
+              <p className="text-[9px] mt-1 text-slate-400">Barang yang sudah dibeli tidak dapat ditukar/dikembalikan</p>
             </div>
           </div>
         </div>
@@ -221,7 +284,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({ transaksi, onClose }
             className="flex items-center justify-center gap-1 sm:gap-1.5 px-2 py-2 rounded-xl bg-slate-900 text-white text-[11px] sm:text-xs font-bold hover:bg-slate-800 transition-colors shadow-xs active:scale-95"
           >
             <Printer className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-            <span>Cetak</span>
+            <span>Cetak 58mm</span>
           </button>
           <button
             onClick={() => setShowWaInput(!showWaInput)}
