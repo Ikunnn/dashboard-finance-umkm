@@ -73,7 +73,6 @@ interface AppContextType {
   setActiveTab: (tab: NavTab) => void;
   currentUser: User | null;
   setCurrentUser: (user: User) => void;
-  switchRole: (role: UserRole) => void;
   users: User[];
   addUser: (user: Omit<User, 'id'> & { password?: string }) => Promise<void>;
   updateUser: (id: string, updates: Partial<User> & { password?: string }) => Promise<void>;
@@ -432,20 +431,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return module !== 'kasir' && module !== 'pengaturan';
     }
     return true;
-  };
-
-  const switchRole = (role: UserRole) => {
-    const targetUser = users.find(u => u.role === role) || {
-      id: `user-${role.toLowerCase()}`,
-      nama: role === 'OWNER' ? 'Rizqan' : role === 'MANAGER' ? 'Manager' : role === 'KASIR' ? 'Kasir' : 'Viewer',
-      email: `${role.toLowerCase()}@poody.id`,
-      role,
-      is_active: true,
-      usaha_id: usaha.id,
-    };
-    setCurrentUser(targetUser);
-    localStorage.setItem('umkm_session', targetUser.id);
-    showToast(`Beralih peran sebagai ${role} (${targetUser.nama})`, 'info');
   };
 
   // Cart Management (Poody: variant + toppings)
@@ -1009,7 +994,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setActiveTab,
         currentUser,
         setCurrentUser,
-        switchRole,
         users,
         addUser,
         updateUser,
