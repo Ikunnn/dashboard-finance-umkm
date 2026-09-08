@@ -4,64 +4,31 @@ import {
   ArrowRight,
   Bell,
   CheckCircle2,
-  ChevronDown,
   Clock,
   LogOut,
   Receipt,
   ShieldCheck,
-  Store,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
-import { UserRole } from '../types';
 
 export const Header: React.FC<{ onOpenMobileMenu?: () => void }> = ({ onOpenMobileMenu }) => {
   const {
     usaha,
     currentUser,
-    switchRole,
     lowStockItems,
     setActiveTab,
     heldTransactions,
     logout,
   } = useApp();
 
-  const [showRoleMenu, setShowRoleMenu] = useState(false);
   const [showAlertMenu, setShowAlertMenu] = useState(false);
 
-  // Today in Indonesian
   const todayFormatted = new Intl.DateTimeFormat('id-ID', {
     weekday: 'long',
     day: 'numeric',
     month: 'long',
     year: 'numeric',
   }).format(new Date());
-
-  const roles: { role: UserRole; label: string; desc: string; badgeColor: string }[] = [
-    {
-      role: 'OWNER',
-      label: 'Pemilik (Owner)',
-      desc: 'Akses penuh ke semua modul, laporan, dan pengaturan',
-      badgeColor: 'bg-emerald-100 text-emerald-800 border-emerald-300',
-    },
-    {
-      role: 'MANAGER',
-      label: 'Manajer Operasional',
-      desc: 'Kelola kasir, stok, pemasukan & pengeluaran harian',
-      badgeColor: 'bg-blue-100 text-blue-800 border-blue-300',
-    },
-    {
-      role: 'KASIR',
-      label: 'Kasir / Staff',
-      desc: 'Fokus transaksi POS kasir & cek ketersediaan stok',
-      badgeColor: 'bg-amber-100 text-amber-800 border-amber-300',
-    },
-    {
-      role: 'VIEWER',
-      label: 'Viewer / Investor',
-      desc: 'Pantau kinerja dashboard & laporan keuangan (view-only)',
-      badgeColor: 'bg-purple-100 text-purple-800 border-purple-300',
-    },
-  ];
 
   return (
     <header className="sticky top-0 z-30 bg-white border-b border-slate-200 px-4 lg:px-6 py-3 shadow-xs">
@@ -98,7 +65,7 @@ export const Header: React.FC<{ onOpenMobileMenu?: () => void }> = ({ onOpenMobi
           </div>
         </div>
 
-        {/* Right Action Tools: Quick Action, Alerts, Role Switcher */}
+        {/* Right Action Tools: Quick Action, Alerts, User (fixed role) */}
         <div className="flex items-center gap-1.5 sm:gap-2 lg:gap-3 flex-shrink-0">
           {/* Quick Pos Action */}
           <button
@@ -119,10 +86,7 @@ export const Header: React.FC<{ onOpenMobileMenu?: () => void }> = ({ onOpenMobi
           <div className="relative">
             <button
               id="btn-stock-alerts"
-              onClick={() => {
-                setShowAlertMenu(!showAlertMenu);
-                setShowRoleMenu(false);
-              }}
+              onClick={() => setShowAlertMenu(!showAlertMenu)}
               className={`relative p-2 rounded-xl border transition-colors ${
                 lowStockItems.length > 0
                   ? 'border-amber-300 bg-amber-50 text-amber-700 hover:bg-amber-100'
@@ -189,79 +153,33 @@ export const Header: React.FC<{ onOpenMobileMenu?: () => void }> = ({ onOpenMobi
             )}
           </div>
 
-          {/* Role Switcher + Logout */}
-          <div className="relative">
+          {/* User — FIXED ROLE (no switcher) */}
+          <div className="flex items-center gap-2 p-1 sm:pl-2 sm:pr-1.5 sm:py-1 rounded-xl border border-slate-200 bg-slate-50">
+            <div className="w-7 h-7 rounded-lg overflow-hidden bg-emerald-600 text-white flex-shrink-0 flex items-center justify-center font-bold text-xs">
+              {currentUser?.avatar ? (
+                <img src={currentUser.avatar} alt={currentUser.nama} className="w-full h-full object-cover" />
+              ) : (
+                (currentUser?.nama || '?').slice(0, 2).toUpperCase()
+              )}
+            </div>
+            <div className="text-left hidden sm:block pr-1">
+              <p className="text-xs font-semibold text-slate-800 leading-tight">
+                {currentUser?.nama}
+              </p>
+              <div className="flex items-center gap-1">
+                <ShieldCheck className="w-3 h-3 text-emerald-600" />
+                <span className="text-[10px] font-bold text-emerald-700 uppercase tracking-wide">
+                  {currentUser?.role}
+                </span>
+              </div>
+            </div>
             <button
-              id="btn-role-switcher"
-              onClick={() => {
-                setShowRoleMenu(!showRoleMenu);
-                setShowAlertMenu(false);
-              }}
-              className="flex items-center gap-1.5 sm:gap-2 p-1 sm:pl-2 sm:pr-3 sm:py-1 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 transition-colors"
+              onClick={() => { if (confirm('Keluar dari akun?')) logout(); }}
+              className="w-7 h-7 rounded-lg bg-white border border-slate-200 hover:bg-red-50 hover:border-red-200 hover:text-red-600 text-slate-500 flex items-center justify-center transition-colors"
+              title="Keluar / Logout"
             >
-              <div className="w-7 h-7 rounded-lg overflow-hidden bg-emerald-600 text-white flex-shrink-0 flex items-center justify-center font-bold text-xs">
-                {currentUser?.avatar ? (
-                  <img src={currentUser.avatar} alt={currentUser.nama} className="w-full h-full object-cover" />
-                ) : (
-                  (currentUser?.nama || '?').slice(0, 2).toUpperCase()
-                )}
-              </div>
-              <div className="text-left hidden sm:block">
-                <p className="text-xs font-semibold text-slate-800 leading-tight">
-                  {currentUser?.nama}
-                </p>
-                <div className="flex items-center gap-1">
-                  <ShieldCheck className="w-3 h-3 text-emerald-600" />
-                  <span className="text-[10px] font-bold text-emerald-700 uppercase tracking-wide">
-                    {currentUser?.role}
-                  </span>
-                </div>
-              </div>
-              <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+              <LogOut className="w-3.5 h-3.5" />
             </button>
-
-            {showRoleMenu && (
-              <div className="absolute right-0 mt-2 w-72 max-w-[calc(100vw-1.5rem)] rounded-2xl bg-white p-2.5 shadow-xl border border-slate-200 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
-                <div className="px-3 py-2 border-b border-slate-100">
-                  <p className="text-xs font-bold text-slate-800">Ganti Peran (Debug)</p>
-                  <p className="text-[11px] text-slate-500">
-                    Uji batasan hak akses — untuk production matikan
-                  </p>
-                </div>
-                <div className="mt-1 space-y-1">
-                  {roles.map(r => (
-                    <button
-                      key={r.role}
-                      onClick={() => {
-                        switchRole(r.role);
-                        setShowRoleMenu(false);
-                      }}
-                      className={`w-full text-left p-2.5 rounded-xl text-xs transition-colors flex items-start gap-2.5 ${
-                        currentUser?.role === r.role
-                          ? 'bg-emerald-50 text-emerald-900 font-semibold'
-                          : 'hover:bg-slate-50 text-slate-700'
-                      }`}
-                    >
-                      <span
-                        className={`mt-0.5 px-1.5 py-0.5 rounded text-[10px] font-extrabold uppercase border ${r.badgeColor}`}
-                      >
-                        {r.role}
-                      </span>
-                      <div>
-                        <p className="font-semibold text-slate-800">{r.label}</p>
-                        <p className="text-[11px] text-slate-500 leading-snug">{r.desc}</p>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-                <button
-                  onClick={() => { setShowRoleMenu(false); if (confirm('Keluar dari akun?')) logout(); }}
-                  className="mt-2 w-full py-2 rounded-xl bg-red-50 hover:bg-red-100 border border-red-200 text-red-700 font-bold text-xs flex items-center justify-center gap-1.5"
-                >
-                  <LogOut className="w-4 h-4" /> Keluar / Logout
-                </button>
-              </div>
-            )}
           </div>
         </div>
       </div>
