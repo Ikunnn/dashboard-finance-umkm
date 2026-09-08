@@ -15,10 +15,12 @@ import { BottomNav } from './components/BottomNav';
 import { ToastContainer } from './components/ToastContainer';
 import { LoginPage } from './components/LoginPage';
 import { AppProvider, useApp } from './context/AppContext';
+import { useCloudSync } from './hooks/useCloudSync';
 import { Transaksi } from './types';
 
 const MainAppContent: React.FC = () => {
   const { activeTab, isAuthenticated } = useApp();
+  useCloudSync();
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [selectedReceipt, setSelectedReceipt] = useState<Transaksi | null>(null);
 
