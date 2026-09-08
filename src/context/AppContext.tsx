@@ -987,6 +987,33 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Low stock calculation
   const lowStockItems = bahanBaku.filter(b => b.stok_saat_ini <= b.stok_minimum);
 
+  // Cloud pull -> reload state from localStorage (so PWA + second HP sees updates without reload)
+  useEffect(() => {
+    const reload = () => {
+      try {
+        const read = (k: string) => { const v = localStorage.getItem(k); if (!v) return null; try { return JSON.parse(v); } catch { return null; } };
+        const u = read('umkm_usaha'); if (u && u.nama_usaha) setUsaha(u);
+        const us = read('umkm_users'); if (Array.isArray(us) && us.length) setUsers(us);
+        const pr = read('umkm_produk'); if (Array.isArray(pr) && pr.length) setProduk(pr);
+        const bb = read('umkm_bahan_baku'); if (Array.isArray(bb) && bb.length) setBahanBaku(bb);
+        const rs = read('umkm_riwayat_stok'); if (Array.isArray(rs)) setRiwayatStok(rs);
+        const tr = read('umkm_transaksi'); if (Array.isArray(tr)) setTransaksi(tr);
+        const pm = read('umkm_pemasukan'); if (Array.isArray(pm)) setPemasukan(pm);
+        const pg = read('umkm_pengeluaran'); if (Array.isArray(pg)) setPengeluaran(pg);
+        const kt = read('umkm_kategori'); if (Array.isArray(kt) && kt.length) setKategori(kt);
+      } catch {}
+    };
+    window.addEventListener('umkm-cloud-pulled', reload);
+    window.addEventListener('storage', reload);
+    // also poll visible pull already does dispatch, but ensure reload on online
+    window.addEventListener('online', reload);
+    return () => {
+      window.removeEventListener('umkm-cloud-pulled', reload);
+      window.removeEventListener('storage', reload);
+      window.removeEventListener('online', reload);
+    };
+  }, []);
+
   return (
     <AppContext.Provider
       value={{
