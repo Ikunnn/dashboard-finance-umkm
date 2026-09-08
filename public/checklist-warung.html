@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Checklist Uji Warung 2 HP — Poody Warung OS</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:Plus Jakarta Sans,system-ui,sans-serif;background:#f8fafc;color:#0f172a;padding:16px}
+.card{background:#fff;border:1px solid #e2e8f0;border-radius:16px;padding:14px 16px;margin-bottom:12px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+h1{font-size:18px;margin:0 0 4px;font-weight:800;letter-spacing:-.02em}
+h2{font-size:13px;margin:0 0 8px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:#059669}
+h3{font-size:12px;margin:10px 0 6px;font-weight:700}
+p,li{font-size:12.5px;line-height:1.5}
+.badge{font-size:10px;font-weight:800;background:#ecfdf5;color:#065f46;border:1px solid #a7f3d0;padding:2px 7px;border-radius:999px}
+.task{display:flex;gap:10px;padding:8px 0;border-bottom:1px dashed #e2e8f0}
+.task:last-child{border:0}
+.check{width:18px;height:18px;border:2px solid #cbd5e1;border-radius:6px;flex-shrink:0;margin-top:1px}
+.expect{background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:8px 10px;font-size:11px;color:#334155}
+.btn{display:inline-flex;align-items:center;gap:6px;background:#059669;color:#fff;border:0;border-radius:10px;padding:8px 12px;font-weight:700;font-size:12px;cursor:pointer}
+.muted{color:#64748b;font-size:11px}
+@media print{body{padding:0}.card{break-inside:avoid;box-shadow:none}}
+</style>
+</head>
+<body>
+<div style="max-width:760px;margin:0 auto">
+  <div class="card" style="background:linear-gradient(135deg,#064e3b,#0f766e);color:#fff;border:0">
+    <div style="display:flex;justify-content:space-between;gap:12px;align-items:start">
+      <div>
+        <div class="badge" style="background:#fff;color:#065f46">E — Uji Warung 2 HP</div>
+        <h1 style="color:#fff;margin-top:8px">Poody Warung OS — Checklist Real</h1>
+        <p style="color:#ccfbf1;margin:4px 0 0">Laptop + HP Saffana nyambung via Vercel Redis. Target 200rb/hari. Cetak A4 / share ke tim.</p>
+      </div>
+      <button class="btn" onclick="window.print()" style="background:#fff;color:#065f46">🖨️ Cetak</button>
+    </div>
+    <p class="muted" style="color:#99f6e4;margin-top:10px">Link: https://dashboard-finance-umkm.vercel.app — Akun: rizqan@poody.id / rizqan123 (OWNER) — saffanap@gmail.com / saffanap29 (MANAGER) — Hard refresh Ctrl+Shift+R setelah deploy.</p>
+  </div>
+
+  <div class="card">
+    <h2>0. Siapin 2 HP</h2>
+    <div class="task"><div class="check"></div><div><b>Laptop</b> login Rizqan OWNER — <b>HP Saffana</b> login Saffana MANAGER di Chrome. Keduanya buka Vercel link, tunggu 5 detik biar sync.</div></div>
+    <div class="task"><div class="check"></div><div>Cek sync: <code>curl https://dashboard-finance-umkm.vercel.app/api/sync?biz=biz_poody</code> harus <b>hasAny:true</b> (bukan 503). Atau jual 1 cup di laptop → refresh HP.</div></div>
+    <div class="expect">✅ Harus: login MANAGER bisa masuk (gak error kayak foto kemarin), data usaha & user sama di 2 HP.</div>
+  </div>
+
+  <div class="card">
+    <h2>1. Kasir — Jual M/L + Topping (dropdown)</h2>
+    <div class="task"><div class="check"></div><div>Kasir → tap <b>Chocolatte</b> → pilih <b>M</b> → buka dropdown topping → centang <b>Keju</b> → Selesai → Masuk keranjang. Total live = 10k+2k = 12k</div></div>
+    <div class="task"><div class="check"></div><div>Tambah <b>Mango L + Oreo</b> → keranjang harus 2 baris beda (cartKey pakai toppings). Badge keranjang nongol `2`.</div></div>
+    <div class="task"><div class="check"></div><div>Bayar <b>TUNAI 30k</b> → Total 24k → Kembalian 6k → Struk muncul. Tap <b>Cetak 58mm</b> → harus keluar logo + footer + 58mm.</div></div>
+    <div class="expect">✅ Katalog cuma 6 rasa, topping gak jadi kartu terpisah — ada di modal dropdown multi-select.</div>
+  </div>
+
+  <div class="card">
+    <h2>2. Stok Auto-Kurang</h2>
+    <div class="task"><div class="check"></div><div>Sebelum jual: Stok → catat <b>Bubuk 12kg, Cup M 320, Susu 18L</b></div></div>
+    <div class="task"><div class="check"></div><div>Jual 1x M + Keju seperti di atas.</div></div>
+    <div class="task"><div class="check"></div><div>Stok → harus ngurang: Bubuk -0.04kg, Susu -0.15L, Cup M -1, Sendok -1, Keju -0.08 pack. Riwayat Stok nambah log <b>KELUAR Auto-kurang</b>.</div></div>
+    <div class="expect">✅ Jual L ngurang 0.06kg + 0.22L + Cup L. Topping 2 pack beda bahan (Keju vs Oreo) kepisah.</div>
+  </div>
+
+  <div class="card">
+    <h2>3. Riwayat — Hapus Koreksi Kasir</h2>
+    <div class="task"><div class="check"></div><div>Bottom nav tap <b>Riwayat</b> (bukan Menu lagi) → cari TRX barusan → tap 🗑️ merah → modal konfirmasi → Hapus.</div></div>
+    <div class="task"><div class="check"></div><div>Cek: Pemasukan `pem-auto-TRX-*` ikut kehapus, stok <b>tidak</b> balik (sengaja — biar tau susut). Jika salah hapus, restore dari Backup.</div></div>
+    <div class="task"><div class="check"></div><div>Login sebagai KASIR → tombol 🗑️ harus gak nongol / disable (guard OWNER/MANAGER only).</div></div>
+  </div>
+
+  <div class="card">
+    <h2>4. Rekap Tutup Kasir — Target 200rb</h2>
+    <div class="task"><div class="check"></div><div>Sidebar → <b>Rekap Tutup Kasir</b> → pilih hari ini → cek Omzet, HPP Real (M5.1k/L6.1k+topping), Laba Kotor, Progress bar 200rb.</div></div>
+    <div class="task"><div class="check"></div><div>Jual sampai 20 cup M polos (20×10k=200k) → progress harus 100% + banner 🎉 Tercapai.</div></div>
+    <div class="task"><div class="check"></div><div>Cek per-rasa & list transaksi hari itu + Export CSV.</div></div>
+  </div>
+
+  <div class="card">
+    <h2>5. Laporan Laba — HPP Real Sinkron</h2>
+    <div class="task"><div class="check"></div><div>Laporan → periode hari ini → <b>HPP Real Poody (M5.1k/L6.1k+topping)</b> harus sama dengan HPP di Rekap. Laba Kotor = Omzet - HPP Real.</div></div>
+    <div class="task"><div class="check"></div><div>Beban lain (Sewa/Listrik/Gaji) tetap dari Pengeluaran manual → Laba Bersih = Laba Kotor - Beban.</div></div>
+  </div>
+
+  <div class="card">
+    <h2>6. Backup 1-Klik + Logo Ganti</h2>
+    <div class="task"><div class="check"></div><div>Pengaturan → paling bawah <b>Backup & Restore</b> → Export → file <code>poody-backup-YYYY-MM-DD.json</code> ke Drive.</div></div>
+    <div class="task"><div class="check"></div><div>Pengaturan → Logo Icon → Ganti → pilih PNG 800KB → Simpan → cek Header/Sidebar/Login di HP lain ganti juga (sync 5 detik).</div></div>
+    <div class="task"><div class="check"></div><div>Restore test: hapus 1 transaksi → Restore file tadi → reload → transaksi balik.</div></div>
+  </div>
+
+  <div class="card">
+    <h2>7. PWA Install + Offline</h2>
+    <div class="task"><div class="check"></div><div>HP Chrome → ⋮ → <b>Install Aplikasi / Tambah ke Layar Utama</b> → icon mascot Poody nongol. iPhone: Share → Tambah ke Layar Utama.</div></div>
+    <div class="task"><div class="check"></div><div>Airplane mode → buka app dari icon → Kasir & Rekap tetap jalan. Matikan airplane → data sync lagi.</div></div>
+  </div>
+
+  <div class="card" style="background:#fffbeb;border-color:#fde68a">
+    <h2 style="color:#92400e">🎓 Training Saffana — 5 Menit Script</h2>
+    <p><b>1 menit</b> Login saffanap@gmail.com / saffanap29 (MANAGER) — gak bisa buka Pengaturan (hanya OWNER).</p>
+    <p><b>1 menit</b> Kasir: tap rasa → pilih M/L → dropdown topping → Bayar TUNAI/QRIS → Cetak 58mm.</p>
+    <p><b>1 menit</b> Salah input? Bottom Riwayat → 🗑️ hapus (hanya MANAGER/OWNER).</p>
+    <p><b>1 menit</b> Tutup shift: Rekap → lihat progress 200rb → Export CSV buat Rizqan.</p>
+    <p><b>1 menit</b> Stok menipis? Stok → Restock → isi qty + harga → otomatis jadi Pengeluaran.</p>
+    <p class="muted">Tips: Tiap Minggu, OWNER Export Backup di Pengaturan → simpan di Drive.</p>
+  </div>
+
+  <div class="card">
+    <h2>Troubleshoot Cepat</h2>
+    <p><b>Login gagal?</b> Cek email lower-case, password saffanap29, akun aktif. Reset di Pengaturan → Edit user.</p>
+    <p><b>Data gak sinkron?</b> Pastikan Vercel env STORAGE_* kecentang Production. Tunggu 15s poll + hard refresh.</p>
+    <p><b>Stok minus?</b> Auto-kurang + warning toast ≤ minimum. Restock di Stok → Tambah.</p>
+    <p><b>Struk gak keluar logo?</b> Pastikan logo udah di-Save di Pengaturan (bukan cuma preview).</p>
+  </div>
+
+  <p class="muted" style="text-align:center;padding:8px">Poody Warung OS — Dashboard Finance UMKM • Build efe8599 • PWA 11 precache • Redis STORAGE • Target 200rb/hari</p>
+</div>
+</body>
+</html>
