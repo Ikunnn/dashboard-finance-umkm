@@ -57,6 +57,7 @@ export type NavTab =
   | 'pemasukan'
   | 'pengeluaran'
   | 'laporan'
+  | 'rekap'
   | 'stok'
   | 'pengaturan';
 
@@ -154,7 +155,7 @@ interface AppContextType {
 
   // Helpers
   lowStockItems: BahanBaku[];
-  canAccess: (permissionModule: 'dashboard' | 'kasir' | 'pemasukan' | 'pengeluaran' | 'laporan' | 'stok' | 'pengaturan') => boolean;
+  canAccess: (permissionModule: 'dashboard' | 'kasir' | 'pemasukan' | 'pengeluaran' | 'laporan' | 'rekap' | 'stok' | 'pengaturan') => boolean;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -416,7 +417,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, [pengeluaran]);
 
   // Role permissions per PRD 3.7.1
-  const canAccess = (module: 'dashboard' | 'kasir' | 'pemasukan' | 'pengeluaran' | 'laporan' | 'stok' | 'pengaturan'): boolean => {
+  const canAccess = (module: 'dashboard' | 'kasir' | 'pemasukan' | 'pengeluaran' | 'laporan' | 'rekap' | 'stok' | 'pengaturan'): boolean => {
     if (!currentUser) return false;
     const role = currentUser.role;
     if (role === 'OWNER') return true;
@@ -424,7 +425,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return module !== 'pengaturan';
     }
     if (role === 'KASIR') {
-      return module === 'dashboard' || module === 'kasir' || module === 'stok';
+      return module === 'dashboard' || module === 'kasir' || module === 'rekap' || module === 'stok';
     }
     if (role === 'VIEWER') {
       return module !== 'kasir' && module !== 'pengaturan';

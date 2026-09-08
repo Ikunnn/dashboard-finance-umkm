@@ -194,6 +194,13 @@ export const DashboardModule: React.FC<{ onSelectReceipt: (trx: Transaksi) => vo
             <span>Buka Kasir (POS)</span>
           </button>
           <button
+            onClick={() => setActiveTab('rekap')}
+            className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-900 font-bold text-xs transition-colors shadow-xs"
+          >
+            <Wallet className="w-4 h-4" />
+            <span>Tutup Kasir</span>
+          </button>
+          <button
             onClick={() => setActiveTab('laporan')}
             className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-semibold text-xs transition-colors backdrop-blur-xs"
           >

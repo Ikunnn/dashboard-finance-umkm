@@ -9,6 +9,7 @@ import { PosModule } from './components/modules/PosModule';
 import { ProdukModule } from './components/modules/ProdukModule';
 import { RiwayatKasirModule } from './components/modules/RiwayatKasirModule';
 import { StokModule } from './components/modules/StokModule';
+import { RekapModule } from './components/modules/RekapModule';
 import { ReceiptModal } from './components/ReceiptModal';
 import { Sidebar } from './components/Sidebar';
 import { BottomNav } from './components/BottomNav';
@@ -44,6 +45,8 @@ const MainAppContent: React.FC = () => {
         return <PengeluaranModule />;
       case 'laporan':
         return <LaporanModule />;
+      case 'rekap':
+        return <RekapModule />;
       case 'stok':
         return <StokModule />;
       case 'pengaturan':

@@ -12,6 +12,7 @@ import {
   Receipt,
   Settings,
   ShoppingCart,
+  Wallet,
   X,
 } from 'lucide-react';
 import { NavTab, useApp } from '../context/AppContext';
@@ -28,7 +29,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, onCloseMobile }) =
     tab: NavTab;
     label: string;
     icon: React.ComponentType<{ className?: string }>;
-    permissionKey: 'dashboard' | 'kasir' | 'pemasukan' | 'pengeluaran' | 'laporan' | 'stok' | 'pengaturan';
+    permissionKey: 'dashboard' | 'kasir' | 'pemasukan' | 'pengeluaran' | 'laporan' | 'rekap' | 'stok' | 'pengaturan';
     badge?: number | string;
     badgeColor?: string;
   }[] = [
@@ -75,6 +76,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, onCloseMobile }) =
       label: 'Laporan Laba Rugi',
       icon: FileSpreadsheet,
       permissionKey: 'laporan',
+    },
+    {
+      tab: 'rekap',
+      label: 'Rekap Tutup Kasir',
+      icon: Wallet,
+      permissionKey: 'rekap',
     },
     {
       tab: 'stok',
