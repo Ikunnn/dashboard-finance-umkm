@@ -27,7 +27,12 @@ import {
   UserRole,
 } from '../types';
 import { getTodayDateString } from '../utils/formatters';
+import { POODY_TOPPINGS } from '../data/poodyCatalog';
 import { sha256Hex } from '../utils/hash';
+
+
+const toppingPriceMap: Record<string, number> = Object.fromEntries(POODY_TOPPINGS.map(t => [t.id, t.price]));
+const getToppingsTotal = (toppings?: string[]) => (toppings || []).reduce((s, id) => s + (toppingPriceMap[id] || 0), 0);
 
 export type NavTab =
   | 'dashboard'
@@ -66,7 +71,7 @@ interface AppContextType {
 
   // POS & Cart
   cart: CartItem[];
-  addToCart: (produk: Produk, varian?: ProdukVarian) => void;
+  addToCart: (produk: Produk, varian?: ProdukVarian, toppings?: string[]) => void;
   updateCartQty: (cartItemId: string, qty: number) => void;
   updateCartItemDiscount: (cartItemId: string, discount: number) => void;
   removeFromCart: (cartItemId: string) => void;
@@ -236,8 +241,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       try {
         const parsed: Produk[] = JSON.parse(saved);
         const isOld = parsed.some((pr: any) => /kopi susu|nasi goreng|ayam geprek|mie goreng|pisang goreng|roti bakar|dimsum|americano|matcha cream/i.test(pr.nama_produk));
-        const hasToppings = parsed.some((pr: any) => pr.kategori === 'Topping');
-        if (isOld || parsed.length < 13 || !hasToppings) return INITIAL_PRODUK;
+        const hasPoody = parsed.some((pr: any) => pr.kategori === 'Poody');
+        const wrongCount = parsed.length !== 6;
+        const isOldToppingAsProduct = parsed.some((pr: any) => pr.kategori === 'Topping' || pr.id?.startsWith('prod-top-'));
+        if (isOld || isOldToppingAsProduct || wrongCount || !hasPoody) return INITIAL_PRODUK;
         return parsed;
       } catch { return INITIAL_PRODUK; }
     }
@@ -410,19 +417,25 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     showToast(`Beralih peran sebagai ${role} (${targetUser.nama})`, 'info');
   };
 
-  // Cart Management
-  const addToCart = (prod: Produk, varian?: ProdukVarian) => {
+  // Cart Management (Poody: variant + toppings)
+  const addToCart = (prod: Produk, varian?: ProdukVarian, toppings?: string[]) => {
+
+    const normToppings = (toppings || []).slice().sort();
     const targetVariant = varian || (prod.varian && prod.varian.length > 0 ? prod.varian[0] : undefined);
-    const cartItemId = `${prod.id}_${targetVariant ? targetVariant.id : 'default'}`;
+    const toppingKey = normToppings.join(',');
+    const cartItemId = `${prod.id}_${targetVariant ? targetVariant.id : 'default'}_${toppingKey}`;
 
     setCart(prev => {
-      const existing = prev.find(item => item.cartItemId === cartItemId || (!item.cartItemId && item.produk.id === prod.id && !item.varian));
+      const existing = prev.find(item => {
+        const tKey = (item.toppings || []).slice().sort().join(',');
+        return item.produk.id === prod.id && (item.varian?.id || 'default') === (targetVariant?.id || 'default') && tKey === toppingKey;
+      });
       if (existing) {
-        return prev.map(item =>
-          (item.cartItemId === cartItemId || (!item.cartItemId && item.produk.id === prod.id && !item.varian))
-            ? { ...item, qty: item.qty + 1 }
-            : item
-        );
+        return prev.map(item => {
+          const tKey = (item.toppings || []).slice().sort().join(',');
+          const isSame = item.produk.id === prod.id && (item.varian?.id || 'default') === (targetVariant?.id || 'default') && tKey === toppingKey;
+          return isSame ? { ...item, qty: item.qty + 1 } : item;
+        });
       }
       return [
         ...prev,
@@ -430,6 +443,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           cartItemId,
           produk: prod,
           varian: targetVariant,
+          toppings: normToppings.length ? normToppings : undefined,
           qty: 1,
           diskon_item: 0,
         },
@@ -516,7 +530,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (!currentUser) { showToast('Harus login dulu', 'warning'); return null; }
 
     const subtotal = cart.reduce((sum, item) => {
-      const price = item.varian ? item.varian.harga_jual : item.produk.harga_jual;
+      const base = item.varian ? item.varian.harga_jual : item.produk.harga_jual;
+      const toppingTotal = getToppingsTotal(item.toppings);
+      const price = base + toppingTotal;
       const itemPrice = price * item.qty - (item.diskon_item || 0);
       return sum + Math.max(0, itemPrice);
     }, 0);
@@ -543,16 +559,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       kasir_id: currentUser.id,
       kasir_nama: currentUser.nama,
       items: cart.map((item, idx) => {
-        const unitPrice = item.varian ? item.varian.harga_jual : item.produk.harga_jual;
-        const displayName = item.varian
+        const base = item.varian ? item.varian.harga_jual : item.produk.harga_jual;
+        const toppingTotal = getToppingsTotal(item.toppings);
+        const unitPrice = base + toppingTotal;
+        const toppingLabel = item.toppings?.length ? ` + ${item.toppings.join(', ')}` : '';
+        const displayName = (item.varian
           ? `${item.produk.nama_produk} (${item.varian.nama})`
-          : item.produk.nama_produk;
+          : item.produk.nama_produk) + toppingLabel;
         return {
           id: `item-${Date.now()}-${idx}`,
           transaksi_id: 'trx-' + Date.now(),
           produk_id: item.produk.id,
           nama_produk: displayName,
           varian_nama: item.varian?.nama,
+          toppings: item.toppings,
           harga_satuan: unitPrice,
           qty: item.qty,
           diskon_item: item.diskon_item || 0,
@@ -568,7 +588,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const itemSummaries = cart
       .map(c => {
         const name = c.varian ? `${c.produk.nama_produk} (${c.varian.nama})` : c.produk.nama_produk;
-        return `${c.qty}x ${name}`;
+        const top = c.toppings?.length ? `+${c.toppings.join('+')}` : '';
+        return `${c.qty}x ${name}${top ? ` ${top}` : ''}`;
       })
       .join(', ');
 

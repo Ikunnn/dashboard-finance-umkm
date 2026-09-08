@@ -35,35 +35,21 @@ const POODY_IMAGES: Record<string, string> = {
   bubblemgum: 'https://images.unsplash.com/photo-1497034825429-c343d7c6a68f?w=300&auto=format&fit=crop&q=80',
 };
 
-export const INITIAL_PRODUK: Produk[] = [
-  ...POODY_RASA.map(r => ({
-    id: `prod-${r.id}`,
-    nama_produk: r.nama,
-    kategori: 'Poody',
-    harga_jual: POODY_SIZES.M.price,
-    harga_modal: POODY_SIZES.M.hpp,
-    satuan: 'cup',
-    gambar: POODY_IMAGES[r.id] || POODY_IMAGES.chocolatte,
-    is_active: true,
-    created_at: '2026-08-01T08:00:00Z',
-    varian: [
-      { id: `var-${r.id}-m`, nama: 'M', harga_jual: POODY_SIZES.M.price, harga_modal: POODY_SIZES.M.hpp },
-      { id: `var-${r.id}-l`, nama: 'L', harga_jual: POODY_SIZES.L.price, harga_modal: POODY_SIZES.L.hpp },
-    ],
-  })),
-  ...POODY_TOPPINGS.map(t => ({
-    id: `prod-top-${t.id.replace(/\s+/g, '-')}`,
-    nama_produk: t.label,
-    kategori: 'Topping',
-    harga_jual: t.price,
-    harga_modal: t.hpp,
-    satuan: 'porsi',
-    gambar: 'https://images.unsplash.com/photo-1558961363-fa8fdf82db35?w=300&auto=format&fit=crop&q=80',
-    is_active: true,
-    created_at: '2026-08-01T08:00:00Z',
-    varian: undefined as any,
-  })),
-];
+export const INITIAL_PRODUK: Produk[] = POODY_RASA.map(r => ({
+  id: `prod-${r.id}`,
+  nama_produk: r.nama,
+  kategori: 'Poody',
+  harga_jual: POODY_SIZES.M.price,
+  harga_modal: POODY_SIZES.M.hpp,
+  satuan: 'cup',
+  gambar: POODY_IMAGES[r.id] || POODY_IMAGES.chocolatte,
+  is_active: true,
+  created_at: '2026-08-01T08:00:00Z',
+  varian: [
+    { id: `var-${r.id}-m`, nama: 'M', harga_jual: POODY_SIZES.M.price, harga_modal: POODY_SIZES.M.hpp },
+    { id: `var-${r.id}-l`, nama: 'L', harga_jual: POODY_SIZES.L.price, harga_modal: POODY_SIZES.L.hpp },
+  ],
+}));
 
 export const INITIAL_BAHAN_BAKU: BahanBaku[] = [
   {

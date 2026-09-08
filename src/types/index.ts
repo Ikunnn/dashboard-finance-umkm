@@ -44,9 +44,10 @@ export interface Produk {
 export type PaymentMethod = 'TUNAI' | 'TRANSFER' | 'QRIS' | 'EWALLET';
 
 export interface CartItem {
-  cartItemId: string; // `${produk.id}_${varian?.id || 'default'}`
+  cartItemId: string; // `${produk.id}_${varian?.id || 'default'}_${toppings?.sort().join(',') || ''}`
   produk: Produk;
   varian?: ProdukVarian;
+  toppings?: string[]; // POODY_TOPPINGS ids e.g. ['keju','oreo crumb']
   qty: number;
   diskon_item: number; // in Rupiah
 }
@@ -57,6 +58,7 @@ export interface ItemTransaksi {
   produk_id: string;
   nama_produk: string;
   varian_nama?: string;
+  toppings?: string[];
   harga_satuan: number;
   qty: number;
   diskon_item: number;

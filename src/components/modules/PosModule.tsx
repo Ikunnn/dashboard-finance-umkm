@@ -23,6 +23,7 @@ import {
   X,
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
+import { POODY_TOPPINGS } from '../../data/poodyCatalog';
 import { PaymentMethod, Produk, Transaksi } from '../../types';
 import { formatRupiah } from '../../utils/formatters';
 
@@ -68,10 +69,15 @@ export const PosModule: React.FC<PosModuleProps> = ({ onOpenReceipt }) => {
   const [selectedItemForDiscount, setSelectedItemForDiscount] = useState<string | null>(null);
   const [itemDiscountInput, setItemDiscountInput] = useState<number>(0);
   const [selectedProductForVariantModal, setSelectedProductForVariantModal] = useState<Produk | null>(null);
+  const [modalVariantId, setModalVariantId] = useState<string | null>(null);
+  const [modalToppings, setModalToppings] = useState<string[]>([]);
 
   // Payment State
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('TUNAI');
   const [nominalBayar, setNominalBayar] = useState<number>(0);
+
+  const toppingMap = Object.fromEntries(POODY_TOPPINGS.map(t => [t.id, t])) as Record<string, typeof POODY_TOPPINGS[number]>;
+  const getToppingsPrice = (ids?: string[]) => (ids || []).reduce((s, id) => s + ((toppingMap[id]?.price) || 0), 0);
 
   // Categories list
   const categories = useMemo(() => {
@@ -99,8 +105,9 @@ export const PosModule: React.FC<PosModuleProps> = ({ onOpenReceipt }) => {
 
   const subtotalBeforeDiscounts = useMemo(() => {
     return cart.reduce((sum, item) => {
-      const price = item.varian ? item.varian.harga_jual : item.produk.harga_jual;
-      return sum + price * item.qty;
+      const base = item.varian ? item.varian.harga_jual : item.produk.harga_jual;
+      const top = getToppingsPrice(item.toppings);
+      return sum + (base + top) * item.qty;
     }, 0);
   }, [cart]);
 
@@ -277,7 +284,12 @@ export const PosModule: React.FC<PosModuleProps> = ({ onOpenReceipt }) => {
                 <div
                   key={prod.id}
                   onClick={() => {
-                    if (hasVariants) {
+                    // Poody with variants -> open size+topping picker; others direct add
+                    if (prod.kategori === 'Poody' && hasVariants) {
+                      setModalVariantId(prod.varian![0]?.id || null);
+                      setModalToppings([]);
+                      setSelectedProductForVariantModal(prod);
+                    } else if (hasVariants) {
                       setSelectedProductForVariantModal(prod);
                     } else {
                       addToCart(prod);
@@ -343,20 +355,19 @@ export const PosModule: React.FC<PosModuleProps> = ({ onOpenReceipt }) => {
                     </div>
 
                     {/* Quick Size Selection Buttons on the Card */}
-                    {hasVariants && (
+                    {prod.kategori === 'Poody' && hasVariants && (
                       <div className="mt-2.5 pt-2 border-t border-slate-100 flex items-center gap-1.5">
                         {prod.varian!.map(v => {
-                          const varInCart = cart.find(
-                            c => c.produk.id === prod.id && c.varian?.id === v.id
-                          );
+                          const varInCartQty = cart.filter(c => c.produk.id === prod.id && c.varian?.id === v.id).reduce((s,c)=>s+c.qty,0);
                           return (
                             <button
                               key={v.id}
                               type="button"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                addToCart(prod, v);
-                                showToast(`${prod.nama_produk} (${v.nama}) ditambahkan ke keranjang`, 'success');
+                                setModalVariantId(v.id);
+                                setModalToppings([]);
+                                setSelectedProductForVariantModal(prod);
                               }}
                               className="relative flex-1 py-1.5 px-1 rounded-xl border border-emerald-200 bg-emerald-50/70 hover:bg-emerald-600 hover:text-white hover:border-emerald-600 text-emerald-950 transition-all text-center group/btn active:scale-95 flex flex-col items-center justify-center min-h-[38px]"
                               title={`Pilih ${v.nama} (${formatRupiah(v.harga_jual)})`}
@@ -367,11 +378,30 @@ export const PosModule: React.FC<PosModuleProps> = ({ onOpenReceipt }) => {
                               <span className="text-[9px] font-mono font-bold opacity-90 block group-hover/btn:text-emerald-100">
                                 {formatRupiah(v.harga_jual)}
                               </span>
-                              {varInCart && (
+                              {varInCartQty > 0 && (
                                 <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-emerald-600 group-hover/btn:bg-white group-hover/btn:text-emerald-800 text-white font-black text-[9px] flex items-center justify-center shadow-xs">
-                                  {varInCart.qty}
+                                  {varInCartQty}
                                 </span>
                               )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                    {prod.kategori !== 'Poody' && hasVariants && (
+                      <div className="mt-2.5 pt-2 border-t border-slate-100 flex items-center gap-1.5">
+                        {prod.varian!.map(v => {
+                          const varInCart = cart.find(c => c.produk.id === prod.id && c.varian?.id === v.id);
+                          return (
+                            <button
+                              key={v.id}
+                              type="button"
+                              onClick={(e) => { e.stopPropagation(); addToCart(prod, v); showToast(`${prod.nama_produk} (${v.nama}) ditambahkan ke keranjang`, 'success'); }}
+                              className="relative flex-1 py-1.5 px-1 rounded-xl border border-emerald-200 bg-emerald-50/70 hover:bg-emerald-600 hover:text-white hover:border-emerald-600 text-emerald-950 transition-all text-center group/btn active:scale-95 flex flex-col items-center justify-center min-h-[38px]"
+                            >
+                              <span className="text-[10px] font-bold leading-tight">{v.nama}</span>
+                              <span className="text-[9px] font-mono font-bold">{formatRupiah(v.harga_jual)}</span>
+                              {varInCart && (<span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-emerald-600 text-white font-black text-[9px] flex items-center justify-center">{varInCart.qty}</span>)}
                             </button>
                           );
                         })}
@@ -498,7 +528,9 @@ export const PosModule: React.FC<PosModuleProps> = ({ onOpenReceipt }) => {
             ) : (
               cart.map(item => {
                 const itemKey = item.cartItemId || `${item.produk.id}_${item.varian?.id || 'default'}`;
-                const unitPrice = item.varian ? item.varian.harga_jual : item.produk.harga_jual;
+                const basePrice = item.varian ? item.varian.harga_jual : item.produk.harga_jual;
+                const toppingPrice = getToppingsPrice(item.toppings);
+                const unitPrice = basePrice + toppingPrice;
                 const itemTotal = unitPrice * item.qty - (item.diskon_item || 0);
                 return (
                   <div key={itemKey} className="pt-2 first:pt-0">
@@ -513,9 +545,14 @@ export const PosModule: React.FC<PosModuleProps> = ({ onOpenReceipt }) => {
                               {item.varian.nama}
                             </span>
                           )}
+                          {item.toppings && item.toppings.length > 0 && (
+                            <span className="px-1.5 py-0.5 rounded-md bg-amber-100 text-amber-800 border border-amber-300 font-semibold text-[9px]">
+                              + {item.toppings.join(', ')}
+                            </span>
+                          )}
                         </div>
                         <div className="text-[11px] font-mono text-slate-400 mt-0.5">
-                          {formatRupiah(unitPrice)}
+                          {formatRupiah(basePrice)}{toppingPrice > 0 ? ` + ${formatRupiah(toppingPrice)}` : ''} = {formatRupiah(unitPrice)}
                         </div>
                       </div>
 
@@ -929,10 +966,10 @@ export const PosModule: React.FC<PosModuleProps> = ({ onOpenReceipt }) => {
           </div>
         </div>
       )}
-      {/* MODAL: Pilih Ukuran / Varian Menu */}
+      {/* MODAL: Pilih Ukuran + Topping (Poody 6 rasa) */}
       {selectedProductForVariantModal && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-150">
-          <div className="bg-white rounded-2xl max-w-sm w-full p-5 shadow-2xl space-y-4 animate-in zoom-in-95 duration-150 border border-slate-100">
+          <div className="bg-white rounded-2xl max-w-sm w-full p-5 shadow-2xl space-y-4 animate-in zoom-in-95 duration-150 border border-slate-100 max-h-[92vh] overflow-y-auto">
             <div className="flex items-start justify-between">
               <div>
                 <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
@@ -941,7 +978,7 @@ export const PosModule: React.FC<PosModuleProps> = ({ onOpenReceipt }) => {
                 <h3 className="text-base font-bold text-slate-900 mt-1.5">
                   {selectedProductForVariantModal.nama_produk}
                 </h3>
-                <p className="text-xs text-slate-500">Pilih ukuran produk untuk masuk ke kasir:</p>
+                <p className="text-xs text-slate-500">Pilih ukuran + topping, lalu tambah ke keranjang:</p>
               </div>
               <button
                 onClick={() => setSelectedProductForVariantModal(null)}
@@ -952,71 +989,75 @@ export const PosModule: React.FC<PosModuleProps> = ({ onOpenReceipt }) => {
             </div>
 
             {selectedProductForVariantModal.gambar && (
-              <div className="w-full h-44 rounded-2xl overflow-hidden bg-slate-50 relative flex items-center justify-center border border-slate-200">
-                <img
-                  src={selectedProductForVariantModal.gambar}
-                  alt=""
-                  aria-hidden="true"
-                  referrerPolicy="no-referrer"
-                  className="absolute inset-0 w-full h-full object-cover blur-md opacity-25 scale-110 pointer-events-none"
-                />
-                <img
-                  src={selectedProductForVariantModal.gambar}
-                  alt={selectedProductForVariantModal.nama_produk}
-                  referrerPolicy="no-referrer"
-                  className="relative z-1 max-w-full max-h-full w-auto h-auto object-contain p-2"
-                />
+              <div className="w-full h-32 rounded-2xl overflow-hidden bg-slate-50 relative flex items-center justify-center border border-slate-200 shrink-0">
+                <img src={selectedProductForVariantModal.gambar} alt="" aria-hidden="true" referrerPolicy="no-referrer" className="absolute inset-0 w-full h-full object-cover blur-md opacity-25 scale-110 pointer-events-none" />
+                <img src={selectedProductForVariantModal.gambar} alt={selectedProductForVariantModal.nama_produk} referrerPolicy="no-referrer" className="relative z-1 max-w-full max-h-full w-auto h-auto object-contain p-2" />
               </div>
             )}
 
-            <div className="space-y-2.5">
-              {selectedProductForVariantModal.varian?.map(v => {
-                const itemInCart = cart.find(
-                  c => c.produk.id === selectedProductForVariantModal.id && c.varian?.id === v.id
-                );
-                return (
-                  <button
-                    key={v.id}
-                    type="button"
-                    onClick={() => {
-                      addToCart(selectedProductForVariantModal, v);
-                      showToast(`${selectedProductForVariantModal.nama_produk} (${v.nama}) ditambahkan!`, 'success');
-                    }}
-                    className="w-full p-3.5 rounded-xl border border-slate-200 hover:border-emerald-500 hover:bg-emerald-50/50 flex items-center justify-between text-left transition-all active:scale-98 group bg-white shadow-2xs"
-                  >
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-bold text-sm text-slate-900 group-hover:text-emerald-700">
-                          {v.nama}
-                        </span>
-                        {itemInCart && (
-                          <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">
-                            {itemInCart.qty} di keranjang
-                          </span>
-                        )}
+            {/* Size picker */}
+            <div className="space-y-2">
+              <p className="text-xs font-bold text-slate-700">Ukuran</p>
+              <div className="grid grid-cols-2 gap-2">
+                {selectedProductForVariantModal.varian?.map(v => {
+                  const isActive = modalVariantId === v.id;
+                  return (
+                    <button
+                      key={v.id}
+                      type="button"
+                      onClick={() => setModalVariantId(v.id)}
+                      className={`p-3 rounded-xl border flex items-center justify-between text-left transition-all active:scale-98 ${isActive ? 'border-emerald-600 bg-emerald-50 shadow-xs' : 'border-slate-200 bg-white hover:border-emerald-300'}`}
+                    >
+                      <div>
+                        <span className={`font-bold text-sm ${isActive ? 'text-emerald-700' : 'text-slate-900'}`}>{v.nama}</span>
+                        <span className="text-xs text-slate-400 block">1 {selectedProductForVariantModal.satuan}</span>
                       </div>
-                      <span className="text-xs text-slate-400">Porsi 1 {selectedProductForVariantModal.satuan}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-mono font-black text-sm text-slate-900 group-hover:text-emerald-700">
-                        {formatRupiah(v.harga_jual)}
-                      </span>
-                      <span className="w-7 h-7 rounded-lg bg-slate-100 group-hover:bg-emerald-600 group-hover:text-white flex items-center justify-center text-slate-500 transition-colors">
-                        <Plus className="w-4 h-4" />
-                      </span>
-                    </div>
-                  </button>
-                );
-              })}
+                      <span className={`font-mono font-black text-sm ${isActive ? 'text-emerald-700' : 'text-slate-900'}`}>{formatRupiah(v.harga_jual)}</span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
-            <div className="pt-2 border-t border-slate-100 flex justify-end">
+            {/* Toppings — only for Poody */}
+            {selectedProductForVariantModal.kategori === 'Poody' && (
+              <div className="space-y-2">
+                <p className="text-xs font-bold text-slate-700">Topping <span className="font-normal text-slate-400">(opsional, bisa pilih banyak)</span></p>
+                <div className="flex flex-wrap gap-1.5">
+                  {POODY_TOPPINGS.map(t => {
+                    const active = modalToppings.includes(t.id);
+                    return (
+                      <button
+                        key={t.id}
+                        type="button"
+                        onClick={() => setModalToppings(prev => prev.includes(t.id) ? prev.filter(x => x !== t.id) : [...prev, t.id])}
+                        className={`px-2.5 py-1.5 rounded-full border text-xs font-bold transition-colors ${active ? 'bg-amber-400 border-amber-500 text-slate-900' : 'bg-white border-slate-200 text-slate-600 hover:border-amber-300'}`}
+                      >
+                        {t.label} +{formatRupiah(t.price).replace('Rp','').trim()}
+                      </button>
+                    );
+                  })}
+                </div>
+                {modalToppings.length > 0 && (
+                  <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-2 py-1">Topping: +{formatRupiah(getToppingsPrice(modalToppings))} • Total: {formatRupiah((selectedProductForVariantModal.varian?.find(v=>v.id===modalVariantId)?.harga_jual || 0) + getToppingsPrice(modalToppings))}</p>
+                )}
+              </div>
+            )}
+
+            <div className="pt-2 border-t border-slate-100 flex gap-2">
+              <button type="button" onClick={() => setSelectedProductForVariantModal(null)} className="flex-1 py-2.5 rounded-xl border border-slate-300 text-slate-700 font-bold text-xs hover:bg-slate-50">Batal</button>
               <button
                 type="button"
-                onClick={() => setSelectedProductForVariantModal(null)}
-                className="w-full py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs transition-colors text-center"
+                onClick={() => {
+                  const varian = selectedProductForVariantModal.varian?.find(v => v.id === modalVariantId) || selectedProductForVariantModal.varian?.[0];
+                  addToCart(selectedProductForVariantModal, varian, selectedProductForVariantModal.kategori === 'Poody' ? modalToppings : []);
+                  const topLabel = modalToppings.length ? ` + ${modalToppings.join(', ')}` : '';
+                  showToast(`${selectedProductForVariantModal.nama_produk} (${varian?.nama})${topLabel} ditambahkan!`, 'success');
+                  setSelectedProductForVariantModal(null);
+                }}
+                className="flex-1 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-1.5"
               >
-                Selesai
+                <Plus className="w-4 h-4" /> Tambah ke Keranjang
               </button>
             </div>
           </div>
