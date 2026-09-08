@@ -123,8 +123,8 @@ export const PengeluaranModule: React.FC = () => {
       jumlah: Number(jumlah),
       deskripsi: deskripsi || 'Biaya operasional',
       bukti: buktiUrl.trim() || undefined,
-      user_id: currentUser.id,
-      user_nama: currentUser.nama,
+      user_id: currentUser!.id,
+      user_nama: currentUser!.nama,
       metode_pembayaran: metodePembayaran,
     });
 

@@ -13,15 +13,19 @@ import { ReceiptModal } from './components/ReceiptModal';
 import { Sidebar } from './components/Sidebar';
 import { BottomNav } from './components/BottomNav';
 import { ToastContainer } from './components/ToastContainer';
+import { LoginPage } from './components/LoginPage';
 import { AppProvider, useApp } from './context/AppContext';
 import { Transaksi } from './types';
 
 const MainAppContent: React.FC = () => {
-  const { activeTab, canAccess } = useApp();
+  const { activeTab, isAuthenticated } = useApp();
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [selectedReceipt, setSelectedReceipt] = useState<Transaksi | null>(null);
 
-  // Render current tab view
+  if (!isAuthenticated) {
+    return <LoginPage />;
+  }
+
   const renderCurrentModule = () => {
     switch (activeTab) {
       case 'dashboard':
@@ -49,13 +53,10 @@ const MainAppContent: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-slate-100 flex text-slate-800">
-      {/* Sidebar Navigation (Desktop and Mobile Drawer) */}
       <Sidebar
         mobileOpen={mobileSidebarOpen}
         onCloseMobile={() => setMobileSidebarOpen(false)}
       />
-
-      {/* Main Workspace Area */}
       <div className="flex-1 flex flex-col min-w-0">
         <Header onOpenMobileMenu={() => setMobileSidebarOpen(true)} />
 
@@ -63,11 +64,9 @@ const MainAppContent: React.FC = () => {
           {renderCurrentModule()}
         </main>
 
-        {/* Mobile Bottom Navigation Bar */}
         <BottomNav onOpenMenu={() => setMobileSidebarOpen(true)} />
       </div>
 
-      {/* Modals & Overlays */}
       <ReceiptModal
         transaksi={selectedReceipt}
         onClose={() => setSelectedReceipt(null)}

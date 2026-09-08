@@ -178,7 +178,7 @@ export const DashboardModule: React.FC<{ onSelectReceipt: (trx: Transaksi) => vo
             Dashboard Finansial UMKM
           </span>
           <h2 className="text-lg sm:text-2xl font-black mt-0.5 tracking-tight">
-            Selamat datang, {currentUser.nama}!
+            Selamat datang, {currentUser!.nama}!
           </h2>
           <p className="text-emerald-100/80 text-xs mt-1 max-w-xl leading-relaxed">
             Pantau arus kas harian, transaksi kasir, persediaan bahan baku, dan laba bersih{' '}

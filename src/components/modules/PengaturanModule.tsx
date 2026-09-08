@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import {
+  Eye,
+  EyeOff,
   Pencil,
   Plus,
   Save,
@@ -58,8 +60,10 @@ export const PengaturanModule: React.FC = () => {
   const [formEmail, setFormEmail] = useState('');
   const [formHp, setFormHp] = useState('');
   const [formRole, setFormRole] = useState<UserRole>('KASIR');
+  const [formPassword, setFormPassword] = useState('');
+  const [showFormPass, setShowFormPass] = useState(false);
 
-  const isOwner = currentUser.role === 'OWNER';
+  const isOwner = currentUser?.role === 'OWNER';
 
   const openAddUser = () => {
     if (!isOwner) { showToast('Hanya OWNER yang bisa tambah pengguna', 'warning'); return; }
@@ -67,6 +71,8 @@ export const PengaturanModule: React.FC = () => {
     setFormNama('');
     setFormEmail('');
     setFormHp('');
+    setFormPassword('');
+    setShowFormPass(false);
     setFormRole('KASIR');
     setShowUserModal(true);
   };
@@ -77,11 +83,13 @@ export const PengaturanModule: React.FC = () => {
     setFormNama(u.nama);
     setFormEmail(u.email);
     setFormHp(u.no_hp || '');
+    setFormPassword('');
+    setShowFormPass(false);
     setFormRole(u.role);
     setShowUserModal(true);
   };
 
-  const handleSubmitUser = (e: React.FormEvent) => {
+  const handleSubmitUser = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formNama.trim() || !formEmail.trim()) {
       showToast('Nama & email wajib diisi', 'warning');
@@ -96,14 +104,19 @@ export const PengaturanModule: React.FC = () => {
     if (dup) { showToast('Email sudah dipakai pengguna lain', 'warning'); return; }
 
     if (editingId) {
-      updateUser(editingId, {
+      await updateUser(editingId, {
         nama: formNama.trim(),
         email: formEmail.trim().toLowerCase(),
         no_hp: formHp.trim() || undefined,
         role: formRole,
+        ...(formPassword ? { password: formPassword } : {}),
       });
     } else {
-      addUser({
+      if (!formPassword || formPassword.length < 6) {
+        showToast('Password minimal 6 karakter', 'warning');
+        return;
+      }
+      await addUser({
         nama: formNama.trim(),
         email: formEmail.trim().toLowerCase(),
         role: formRole,
@@ -111,6 +124,7 @@ export const PengaturanModule: React.FC = () => {
         avatar: `https://i.pravatar.cc/150?u=${encodeURIComponent(formEmail.trim().toLowerCase())}`,
         is_active: true,
         usaha_id: usaha.id,
+        password: formPassword,
       });
     }
     setShowUserModal(false);
@@ -259,7 +273,7 @@ export const PengaturanModule: React.FC = () => {
 
           <div className="space-y-2">
             {users.map(u => {
-              const isCurrent = currentUser.id === u.id;
+              const isCurrent = currentUser?.id === u.id;
               return (
                 <div
                   key={u.id}
@@ -321,9 +335,9 @@ export const PengaturanModule: React.FC = () => {
                     </button>
                     <button
                       onClick={(e) => { e.stopPropagation(); handleDeleteUser(u.id); }}
-                      disabled={users.length <= 1 || u.id === currentUser.id}
-                      className={`w-7 h-7 rounded-lg border flex items-center justify-center ${users.length <= 1 || u.id === currentUser.id ? 'bg-slate-100 border-slate-200 text-slate-300 cursor-not-allowed' : 'bg-white border-slate-200 hover:bg-red-50 hover:border-red-200 text-slate-600 hover:text-red-600'}`}
-                      title={u.id === currentUser.id ? 'Tidak bisa hapus akun login' : users.length <= 1 ? 'Minimal 1 akun' : 'Hapus'}
+                      disabled={users.length <= 1 || u.id === currentUser?.id}
+                      className={`w-7 h-7 rounded-lg border flex items-center justify-center ${users.length <= 1 || u.id === currentUser?.id ? 'bg-slate-100 border-slate-200 text-slate-300 cursor-not-allowed' : 'bg-white border-slate-200 hover:bg-red-50 hover:border-red-200 text-slate-600 hover:text-red-600'}`}
+                      title={u.id === currentUser?.id ? 'Tidak bisa hapus akun login' : users.length <= 1 ? 'Minimal 1 akun' : 'Hapus'}
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
@@ -399,6 +413,28 @@ export const PengaturanModule: React.FC = () => {
                   onChange={e => setFormHp(e.target.value)}
                   className="w-full px-3 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                 />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-slate-700 block mb-1">
+                  {editingId ? 'Password baru (kosongkan jika tidak ganti)' : 'Password * (min 6)'}
+                </label>
+                <div className="relative">
+                  <input
+                    type={showFormPass ? 'text' : 'password'}
+                    required={!editingId}
+                    placeholder={editingId ? '••••••' : 'min 6 karakter'}
+                    value={formPassword}
+                    onChange={e => setFormPassword(e.target.value)}
+                    className="w-full px-3 py-2.5 pr-10 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowFormPass(!showFormPass)}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-500"
+                  >
+                    {showFormPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
               </div>
               <div>
                 <label className="text-xs font-bold text-slate-700 block mb-1">Role / Hak Akses *</label>

@@ -7,6 +7,7 @@ import {
   FileSpreadsheet,
   LayoutDashboard,
   Lock,
+  LogOut,
   Package,
   Receipt,
   Settings,
@@ -21,7 +22,7 @@ interface SidebarProps {
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, onCloseMobile }) => {
-  const { activeTab, setActiveTab, canAccess, lowStockItems, heldTransactions, currentUser } = useApp();
+  const { activeTab, setActiveTab, canAccess, lowStockItems, heldTransactions, currentUser, logout } = useApp();
 
   const navItems: {
     tab: NavTab;
@@ -213,12 +214,18 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, onCloseMobile }) =
               <span className="text-[11px] text-slate-400">Status Akun:</span>
             </div>
             <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-400 px-1.5 py-0.5 rounded bg-emerald-950/60 border border-emerald-800/60">
-              {currentUser.role}
+              {currentUser?.role}
             </span>
           </div>
           <p className="text-[11px] font-medium text-slate-300 truncate mt-1">
-            {currentUser.nama}
+            {currentUser?.nama}
           </p>
+          <button
+            onClick={() => { if (confirm('Keluar?')) logout(); }}
+            className="mt-2 w-full py-1.5 rounded-lg bg-slate-800 hover:bg-red-900/40 border border-slate-700 hover:border-red-800 text-slate-300 hover:text-red-300 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors"
+          >
+            <LogOut className="w-3.5 h-3.5" /> Logout
+          </button>
         </div>
       </aside>
     </>

@@ -9,6 +9,7 @@ export interface User {
   avatar?: string;
   is_active: boolean;
   usaha_id: string;
+  password_hash?: string; // SHA-256 hex
 }
 
 export interface Usaha {

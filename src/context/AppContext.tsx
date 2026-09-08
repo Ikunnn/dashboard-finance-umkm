@@ -27,6 +27,7 @@ import {
   UserRole,
 } from '../types';
 import { getTodayDateString } from '../utils/formatters';
+import { sha256Hex } from '../utils/hash';
 
 export type NavTab =
   | 'dashboard'
@@ -49,15 +50,19 @@ interface AppContextType {
   // Navigation & Role
   activeTab: NavTab;
   setActiveTab: (tab: NavTab) => void;
-  currentUser: User;
+  currentUser: User | null;
   setCurrentUser: (user: User) => void;
   switchRole: (role: UserRole) => void;
   users: User[];
-  addUser: (user: Omit<User, 'id'>) => void;
-  updateUser: (id: string, updates: Partial<User>) => void;
+  addUser: (user: Omit<User, 'id'> & { password?: string }) => Promise<void>;
+  updateUser: (id: string, updates: Partial<User> & { password?: string }) => Promise<void>;
   deleteUser: (id: string) => void;
   usaha: Usaha;
   updateUsaha: (updates: Partial<Usaha>) => void;
+  // Auth
+  isAuthenticated: boolean;
+  login: (email: string, password: string) => Promise<boolean>;
+  logout: () => void;
 
   // POS & Cart
   cart: CartItem[];
@@ -145,10 +150,77 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const [users, setUsers] = useState<User[]>(() => {
     const saved = localStorage.getItem('umkm_users');
-    return saved ? JSON.parse(saved) : INITIAL_USERS;
+    if (saved) {
+      try {
+        const parsed: User[] = JSON.parse(saved);
+        // migration: ensure Rizqan has password_hash if missing
+        const riz = parsed.find(u => u.email.toLowerCase() === 'rizqan@poody.id');
+        if (riz && !riz.password_hash) {
+          riz.password_hash = '51da9f111dab19bfb83aee8904fbd071c444c579cf6b60f3712164f28aa19e58'; // rizqan123
+        }
+        return parsed;
+      } catch { return INITIAL_USERS; }
+    }
+    return INITIAL_USERS;
   });
 
-  const [currentUser, setCurrentUser] = useState<User>(() => users[0] || INITIAL_USERS[0]);
+  // Auth - session persisted as user id
+  const [currentUser, setCurrentUser] = useState<User | null>(() => {
+    const sessionId = localStorage.getItem('umkm_session');
+    if (sessionId) {
+      const saved = localStorage.getItem('umkm_users');
+      const list: User[] = saved ? JSON.parse(saved) : INITIAL_USERS;
+      const found = list.find(u => u.id === sessionId && u.is_active);
+      if (found) return found;
+    }
+    return null;
+  });
+
+  const isAuthenticated = currentUser !== null && currentUser.is_active;
+
+  const login = async (email: string, password: string): Promise<boolean> => {
+    const normalized = email.trim().toLowerCase();
+    const user = users.find(u => u.email.toLowerCase() === normalized);
+    if (!user || !user.is_active) return false;
+    // if account has no password_hash yet (legacy), allow any password and set it
+    if (!user.password_hash) {
+      const hash = await sha256Hex(password);
+      setUsers(prev => prev.map(u => u.id === user.id ? { ...u, password_hash: hash } : u));
+      setCurrentUser({ ...user, password_hash: hash });
+      localStorage.setItem('umkm_session', user.id);
+      showToast(`Selamat datang, ${user.nama}!`, 'success');
+      return true;
+    }
+    const hash = await sha256Hex(password);
+    if (hash !== user.password_hash) return false;
+    setCurrentUser(user);
+    localStorage.setItem('umkm_session', user.id);
+    showToast(`Selamat datang, ${user.nama}!`, 'success');
+    return true;
+  };
+
+  const logout = () => {
+    localStorage.removeItem('umkm_session');
+    setCurrentUser(null);
+    setActiveTab('dashboard');
+    showToast('Berhasil keluar', 'info');
+  };
+
+  // Keep currentUser in sync when users list changes (e.g. password change)
+  useEffect(() => {
+    if (currentUser) {
+      const fresh = users.find(u => u.id === currentUser.id);
+      if (fresh) {
+        if (fresh.password_hash !== currentUser.password_hash || fresh.nama !== currentUser.nama || fresh.role !== currentUser.role) {
+          setCurrentUser(fresh);
+        }
+      } else {
+        // user deleted
+        logout();
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [users]);
 
   // Catalog & Inventory
   const [produk, setProduk] = useState<Produk[]>(() => {
@@ -269,6 +341,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // Role permissions per PRD 3.7.1
   const canAccess = (module: 'dashboard' | 'kasir' | 'pemasukan' | 'pengeluaran' | 'laporan' | 'stok' | 'pengaturan'): boolean => {
+    if (!currentUser) return false;
     const role = currentUser.role;
     if (role === 'OWNER') return true;
     if (role === 'MANAGER') {
@@ -286,19 +359,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const switchRole = (role: UserRole) => {
     const targetUser = users.find(u => u.role === role) || {
       id: `user-${role.toLowerCase()}`,
-      nama: role === 'OWNER' ? 'Budi Santoso' : role === 'MANAGER' ? 'Siti Rahma' : role === 'KASIR' ? 'Rian Hidayat' : 'Agus Pratama',
-      email: `${role.toLowerCase()}@nusantara.id`,
+      nama: role === 'OWNER' ? 'Rizqan' : role === 'MANAGER' ? 'Manager' : role === 'KASIR' ? 'Kasir' : 'Viewer',
+      email: `${role.toLowerCase()}@poody.id`,
       role,
       is_active: true,
       usaha_id: usaha.id,
     };
     setCurrentUser(targetUser);
+    localStorage.setItem('umkm_session', targetUser.id);
     showToast(`Beralih peran sebagai ${role} (${targetUser.nama})`, 'info');
   };
 
   // Cart Management
   const addToCart = (prod: Produk, varian?: ProdukVarian) => {
-    // If product has variants and no variant was passed, pick the first one by default
     const targetVariant = varian || (prod.varian && prod.varian.length > 0 ? prod.varian[0] : undefined);
     const cartItemId = `${prod.id}_${targetVariant ? targetVariant.id : 'default'}`;
 
@@ -400,6 +473,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Process Transaction
   const processTransaction = (paymentMethod: PaymentMethod, paidAmount: number): Transaksi | null => {
     if (!cart.length) return null;
+    if (!currentUser) { showToast('Harus login dulu', 'warning'); return null; }
 
     const subtotal = cart.reduce((sum, item) => {
       const price = item.varian ? item.varian.harga_jual : item.produk.harga_jual;
@@ -451,7 +525,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     // Save transaction
     setTransaksi(prev => [newTrx, ...prev]);
 
-    // PRD 3.3.1: Otomatis dari Kasir - Setiap transaksi kasir yang berhasil otomatis tercatat sebagai pemasukan
     const itemSummaries = cart
       .map(c => {
         const name = c.varian ? `${c.produk.nama_produk} (${c.varian.nama})` : c.produk.nama_produk;
@@ -528,7 +601,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
     setPengeluaran(prev => [newPeng, ...prev]);
 
-    // If linked to raw material stock addition
     if (alsoUpdateStock && alsoUpdateStock.bahanId && alsoUpdateStock.qty > 0) {
       setBahanBaku(prev =>
         prev.map(b =>
@@ -555,7 +627,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         total_harga: newPeng.jumlah,
         keterangan: `Pembelian dari pengeluaran: ${newPeng.deskripsi}`,
         tanggal: newPeng.tanggal,
-        user_nama: currentUser.nama,
+        user_nama: currentUser?.nama || 'Sistem',
         created_at: new Date().toISOString(),
       };
       setRiwayatStok(prev => [newStockLog, ...prev]);
@@ -628,12 +700,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       total_harga: totalHarga,
       keterangan: keterangan || 'Input stok masuk',
       tanggal: getTodayDateString(),
-      user_nama: currentUser.nama,
+      user_nama: currentUser?.nama || 'Sistem',
       created_at: new Date().toISOString(),
     };
     setRiwayatStok(prev => [log, ...prev]);
 
-    // PRD 3.6.4: Integrasi dengan pengeluaran - Stok masuk otomatis tercatat sebagai pengeluaran bahan baku jika dipilih
     if (recordAsExpense && totalHarga > 0) {
       const exp: Pengeluaran = {
         id: 'peng-stock-' + Date.now(),
@@ -643,8 +714,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         jumlah: totalHarga,
         deskripsi: `Restock ${target.nama_bahan} (${qty} ${target.satuan}) - ${keterangan}`,
         vendor: vendor || target.supplier || 'Supplier Bahan Baku',
-        user_id: currentUser.id,
-        user_nama: currentUser.nama,
+        user_id: currentUser?.id || 'system',
+        user_nama: currentUser?.nama || 'Sistem',
         created_at: new Date().toISOString(),
       };
       setPengeluaran(prev => [exp, ...prev]);
@@ -683,7 +754,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       satuan: target.satuan,
       keterangan: keterangan || 'Penggunaan bahan baku operasional',
       tanggal: getTodayDateString(),
-      user_nama: currentUser.nama,
+      user_nama: currentUser?.nama || 'Sistem',
       created_at: new Date().toISOString(),
     };
     setRiwayatStok(prev => [log, ...prev]);
@@ -707,25 +778,39 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     showToast('Kategori dihapus', 'info');
   };
 
-  // Settings & Users
+  // Settings & Users (with password_hash)
   const updateUsaha = (updates: Partial<Usaha>) => {
     setUsaha(prev => ({ ...prev, ...updates }));
     showToast('Profil usaha berhasil diperbarui', 'success');
   };
 
-  const addUser = (userData: Omit<User, 'id'>) => {
+  const addUser = async (userData: Omit<User, 'id'> & { password?: string }) => {
+    const { password, ...rest } = userData as any;
+    let password_hash: string | undefined;
+    if (password) {
+      password_hash = await sha256Hex(password);
+    } else {
+      // default temp password = 123456
+      password_hash = await sha256Hex('123456');
+    }
     const newUser: User = {
-      ...userData,
+      ...(rest as Omit<User, 'id'>),
       id: 'user-' + Date.now(),
+      password_hash,
     };
     setUsers(prev => [...prev, newUser]);
     showToast(`Pengguna "${newUser.nama}" (${newUser.role}) ditambahkan`, 'success');
   };
 
-  const updateUser = (id: string, updates: Partial<User>) => {
-    setUsers(prev => prev.map(u => (u.id === id ? { ...u, ...updates } : u)));
-    if (currentUser.id === id) {
-      setCurrentUser(prev => ({ ...prev, ...updates }));
+  const updateUser = async (id: string, updates: Partial<User> & { password?: string }) => {
+    const { password, ...rest } = updates as any;
+    let patch: Partial<User> = { ...rest };
+    if (password) {
+      patch.password_hash = await sha256Hex(password);
+    }
+    setUsers(prev => prev.map(u => (u.id === id ? { ...u, ...patch } : u)));
+    if (currentUser?.id === id) {
+      setCurrentUser(prev => prev ? ({ ...prev, ...patch }) : prev);
     }
     showToast('Data pengguna diperbarui', 'success');
   };
@@ -735,7 +820,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       showToast('Tidak bisa hapus — minimal 1 akun harus ada', 'warning');
       return;
     }
-    if (id === currentUser.id) {
+    if (id === currentUser?.id) {
       showToast('Tidak bisa hapus akun yang sedang login', 'warning');
       return;
     }
@@ -761,6 +846,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         deleteUser,
         usaha,
         updateUsaha,
+        isAuthenticated,
+        login,
+        logout,
         cart,
         addToCart,
         updateCartQty,

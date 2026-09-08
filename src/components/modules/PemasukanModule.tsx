@@ -75,8 +75,8 @@ export const PemasukanModule: React.FC = () => {
       jumlah: Number(jumlah),
       deskripsi: deskripsi || 'Pemasukan operasional usaha',
       bukti: buktiUrl.trim() || undefined,
-      user_id: currentUser.id,
-      user_nama: currentUser.nama,
+      user_id: currentUser!.id,
+      user_nama: currentUser!.nama,
     });
 
     setShowModal(false);

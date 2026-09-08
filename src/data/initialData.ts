@@ -19,6 +19,8 @@ export const INITIAL_USERS: User[] = [
     avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
     is_active: true,
     usaha_id: 'usaha-01',
+    // default password: rizqan123 — OWNER bisa ganti di Pengaturan
+    password_hash: '51da9f111dab19bfb83aee8904fbd071c444c579cf6b60f3712164f28aa19e58',
   },
 ];
 
