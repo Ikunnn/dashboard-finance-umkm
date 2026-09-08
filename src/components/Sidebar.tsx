@@ -23,7 +23,7 @@ interface SidebarProps {
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, onCloseMobile }) => {
-  const { activeTab, setActiveTab, canAccess, lowStockItems, heldTransactions, currentUser, logout } = useApp();
+  const { activeTab, setActiveTab, canAccess, lowStockItems, heldTransactions, currentUser, logout, usaha } = useApp();
 
   const navItems: {
     tab: NavTab;
@@ -117,7 +117,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, onCloseMobile }) =
         {/* App Brand Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-slate-800">
           <div className="flex items-center gap-2.5">
-            <img src="/logo-poody.png" alt="Poody" className="w-8 h-8 rounded-lg object-contain bg-white p-1 shadow-sm shrink-0" />
+            <img src={usaha.logo || "/logo-poody.png"} alt="Poody" className="w-8 h-8 rounded-lg object-contain bg-white p-1 shadow-sm shrink-0" />
             <div>
               <span className="font-bold text-white text-sm tracking-tight block">
                 Poody

@@ -48,6 +48,7 @@ export const PengaturanModule: React.FC = () => {
   const [footerStruk, setFooterStruk] = useState(
     usaha.footer_struk || 'Terima kasih atas kunjungan Anda!'
   );
+  const [logoPreview, setLogoPreview] = useState(usaha.logo || '/logo-poody.png');
 
   // Category Form
   const [namaKategoriBaru, setNamaKategoriBaru] = useState('');
@@ -137,6 +138,25 @@ export const PengaturanModule: React.FC = () => {
     deleteUser(id);
   };
 
+  const handleLogoFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) { showToast('File harus gambar (PNG/JPG)', 'warning'); return; }
+    if (file.size > 800 * 1024) { showToast('Maks 800KB biar ringan di HP', 'warning'); return; }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = reader.result as string;
+      setLogoPreview(dataUrl);
+    };
+    reader.readAsDataURL(file);
+    // reset input biar bisa pilih file sama lagi
+    e.target.value = '';
+  };
+  const handleResetLogo = () => {
+    setLogoPreview('/logo-poody.png');
+    showToast('Logo direset ke default Poody', 'info');
+  };
+
   const handleSaveProfile = (e: React.FormEvent) => {
     e.preventDefault();
     updateUsaha({
@@ -145,6 +165,7 @@ export const PengaturanModule: React.FC = () => {
       alamat,
       no_telepon: noTelepon,
       footer_struk: footerStruk,
+      logo: logoPreview,
     });
   };
 
@@ -181,6 +202,21 @@ export const PengaturanModule: React.FC = () => {
           </div>
 
           <form onSubmit={handleSaveProfile} className="space-y-3 text-xs">
+            {/* Logo Icon — OWNER can change */}
+            <div className="flex items-start gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200">
+              <img src={logoPreview} alt="Logo Poody" className="w-14 h-14 rounded-xl object-contain bg-white border border-slate-200 p-1.5 shrink-0" />
+              <div className="min-w-0 flex-1">
+                <label className="font-bold text-slate-700 block mb-1">Logo Icon</label>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <label className="px-3 py-1.5 rounded-lg bg-white border border-slate-300 text-xs font-bold text-slate-700 hover:bg-slate-50 cursor-pointer flex items-center gap-1.5">
+                    <span>📷 Ganti Logo</span>
+                    <input type="file" accept="image/png,image/jpeg,image/webp" onChange={handleLogoFile} className="hidden" />
+                  </label>
+                  <button type="button" onClick={handleResetLogo} className="px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-50">Reset default</button>
+                </div>
+                <p className="text-[10px] text-slate-400 mt-1 leading-snug">PNG/JPG/WebP max 800KB. Akan nongol di Sidebar, Header & Login di semua HP (sinkron).</p>
+              </div>
+            </div>
             <div>
               <label className="font-bold text-slate-700 block mb-1">Nama Usaha *</label>
               <input

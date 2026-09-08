@@ -3,7 +3,7 @@ import { Eye, EyeOff, LogIn, Shield, Store } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 
 export const LoginPage: React.FC = () => {
-  const { login } = useApp();
+  const { login, usaha } = useApp();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPass, setShowPass] = useState(false);
@@ -30,7 +30,7 @@ export const LoginPage: React.FC = () => {
       <div className="w-full max-w-sm">
         {/* Brand */}
         <div className="text-center mb-6">
-          <img src="/logo-poody.png" alt="Poody" className="w-14 h-14 rounded-2xl object-contain bg-white p-1.5 shadow mx-auto border border-slate-100" />
+          <img src={(usaha as any)?.logo || "/logo-poody.png"} alt="Poody" className="w-14 h-14 rounded-2xl object-contain bg-white p-1.5 shadow mx-auto border border-slate-100" />
           <h1 className="mt-3 font-black text-slate-900 text-xl tracking-tight">Finance UMKM</h1>
           <p className="text-xs text-slate-500 mt-1">Masuk untuk kelola kasir, stok & laporan</p>
         </div>
