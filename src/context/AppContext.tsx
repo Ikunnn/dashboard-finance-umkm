@@ -98,6 +98,7 @@ interface AppContextType {
   // Transactions & Receipt
   transaksi: Transaksi[];
   processTransaction: (paymentMethod: PaymentMethod, paidAmount: number) => Transaksi | null;
+  deleteTransaksi: (id: string) => void;
   lastCompletedTrx: Transaksi | null;
   setLastCompletedTrx: (trx: Transaksi | null) => void;
 
@@ -613,6 +614,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return newTrx;
   };
 
+  const deleteTransaksi = (id: string) => {
+    const target = transaksi.find(t => t.id === id);
+    if (!target) {
+      showToast('Transaksi tidak ditemukan', 'error');
+      return;
+    }
+    setTransaksi(prev => prev.filter(t => t.id !== id));
+    setPemasukan(prev => prev.filter(p => p.transaksi_id !== id));
+    if (lastCompletedTrx?.id === id) setLastCompletedTrx(null);
+    showToast(`Transaksi ${target.nomor_transaksi} dihapus`, 'info');
+  };
+
   // Product CRUD
   const addProduk = (data: Omit<Produk, 'id' | 'created_at'>) => {
     const newProd: Produk = {
@@ -932,6 +945,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         deleteProduk,
         transaksi,
         processTransaction,
+        deleteTransaksi,
         lastCompletedTrx,
         setLastCompletedTrx,
         pemasukan,

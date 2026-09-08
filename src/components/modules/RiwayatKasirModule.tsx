@@ -1,28 +1,31 @@
 import React, { useMemo, useState } from 'react';
 import {
+  AlertTriangle,
   Calendar,
   Download,
   Eye,
-  Filter,
   Receipt,
   Search,
   ShoppingCart,
-  Tag,
-  User,
+  Trash2,
+  X,
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import { PaymentMethod, Transaksi } from '../../types';
+import { Transaksi } from '../../types';
 import { exportToCSV, formatDateIndo, formatRupiah } from '../../utils/formatters';
 
 export const RiwayatKasirModule: React.FC<{ onSelectReceipt: (trx: Transaksi) => void }> = ({
   onSelectReceipt,
 }) => {
-  const { transaksi, setActiveTab } = useApp();
+  const { transaksi, setActiveTab, deleteTransaksi, currentUser } = useApp();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedMethod, setSelectedMethod] = useState<string>('SEMUA');
   const [selectedDate, setSelectedDate] = useState<string>('');
   const [expandedTrxId, setExpandedTrxId] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<Transaksi | null>(null);
+
+  const canDelete = currentUser?.role === 'OWNER' || currentUser?.role === 'MANAGER';
 
   // Filtered Transaksi
   const filtered = useMemo(() => {
@@ -59,6 +62,12 @@ export const RiwayatKasirModule: React.FC<{ onSelectReceipt: (trx: Transaksi) =>
     exportToCSV(`Riwayat_Transaksi_${new Date().toISOString().slice(0, 10)}`, rows);
   };
 
+  const handleConfirmDelete = () => {
+    if (!confirmDelete) return;
+    deleteTransaksi(confirmDelete.id);
+    setConfirmDelete(null);
+  };
+
   return (
     <div className="space-y-5">
       {/* Header & Stats Banner */}
@@ -71,7 +80,7 @@ export const RiwayatKasirModule: React.FC<{ onSelectReceipt: (trx: Transaksi) =>
             <h2 className="text-base sm:text-lg font-bold text-slate-800">Riwayat Transaksi Kasir</h2>
           </div>
           <p className="text-xs text-slate-400 mt-0.5">
-            Daftar penjualan kasir POS yang telah selesai
+            Daftar penjualan kasir POS yang telah selesai — geser/hapus jika salah input
           </p>
         </div>
 
@@ -84,7 +93,6 @@ export const RiwayatKasirModule: React.FC<{ onSelectReceipt: (trx: Transaksi) =>
               {formatRupiah(totalOmzet)}
             </span>
           </div>
-
           <button
             onClick={handleExportCSV}
             className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-semibold shadow-xs transition-colors active:scale-95"
@@ -93,7 +101,6 @@ export const RiwayatKasirModule: React.FC<{ onSelectReceipt: (trx: Transaksi) =>
             <span className="hidden sm:inline">Export CSV</span>
             <span className="sm:hidden">CSV</span>
           </button>
-
           <button
             onClick={() => setActiveTab('kasir')}
             className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs transition-colors active:scale-95"
@@ -103,7 +110,6 @@ export const RiwayatKasirModule: React.FC<{ onSelectReceipt: (trx: Transaksi) =>
           </button>
         </div>
       </div>
-
       {/* Filter Toolbar */}
       <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs grid grid-cols-1 sm:grid-cols-3 gap-3">
         {/* Search */}
@@ -117,7 +123,6 @@ export const RiwayatKasirModule: React.FC<{ onSelectReceipt: (trx: Transaksi) =>
             className="w-full pl-9 pr-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500"
           />
         </div>
-
         {/* Payment Method Filter */}
         <div className="flex items-center gap-2">
           <span className="text-xs text-slate-400 whitespace-nowrap">Metode:</span>
@@ -133,7 +138,6 @@ export const RiwayatKasirModule: React.FC<{ onSelectReceipt: (trx: Transaksi) =>
             <option value="EWALLET">E-Wallet</option>
           </select>
         </div>
-
         {/* Date Filter */}
         <div className="flex items-center gap-2">
           <Calendar className="w-4 h-4 text-slate-400 flex-shrink-0" />
@@ -153,7 +157,6 @@ export const RiwayatKasirModule: React.FC<{ onSelectReceipt: (trx: Transaksi) =>
           )}
         </div>
       </div>
-
       {/* Transactions Table & Mobile Cards */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
         {/* Mobile Card View (visible on mobile) */}
@@ -217,9 +220,18 @@ export const RiwayatKasirModule: React.FC<{ onSelectReceipt: (trx: Transaksi) =>
                         onClick={() => onSelectReceipt(trx)}
                         className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-bold transition-colors"
                       >
-                        <Receipt className="w-3.5 h-3.5" />
+                        <Eye className="w-3.5 h-3.5" />
                         <span>Struk</span>
                       </button>
+                      {canDelete && (
+                        <button
+                          onClick={() => setConfirmDelete(trx)}
+                          className="p-1.5 rounded-xl bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 transition-colors"
+                          title="Hapus transaksi"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
                     </div>
                   </div>
 
@@ -326,14 +338,25 @@ export const RiwayatKasirModule: React.FC<{ onSelectReceipt: (trx: Transaksi) =>
                           {formatRupiah(trx.total_bayar)}
                         </td>
                         <td className="py-3 px-4 text-center">
-                          <button
-                            onClick={() => onSelectReceipt(trx)}
-                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-semibold transition-colors"
-                            title="Buka Struk"
-                          >
-                            <Receipt className="w-3.5 h-3.5" />
-                            <span>Struk</span>
-                          </button>
+                          <div className="flex items-center justify-center gap-1.5">
+                            <button
+                              onClick={() => onSelectReceipt(trx)}
+                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-semibold transition-colors"
+                              title="Buka Struk"
+                            >
+                              <Receipt className="w-3.5 h-3.5" />
+                              <span>Struk</span>
+                            </button>
+                            {canDelete && (
+                              <button
+                                onClick={() => setConfirmDelete(trx)}
+                                className="p-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 transition-colors"
+                                title="Hapus transaksi (koreksi salah input)"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                          </div>
                         </td>
                       </tr>
 
@@ -378,6 +401,47 @@ export const RiwayatKasirModule: React.FC<{ onSelectReceipt: (trx: Transaksi) =>
           </table>
         </div>
       </div>
+
+      {/* Confirm Delete Modal */}
+      {confirmDelete && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-sm w-full shadow-2xl p-5 space-y-4 animate-in zoom-in-95 border border-slate-200">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-xl bg-red-50 border border-red-200 text-red-600 flex items-center justify-center shrink-0">
+                <AlertTriangle className="w-5 h-5" />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-bold text-sm text-slate-900">Hapus transaksi ini?</h3>
+                <p className="text-xs text-slate-500 mt-1">
+                  <span className="font-mono font-bold text-slate-900">{confirmDelete.nomor_transaksi}</span> — {formatRupiah(confirmDelete.total_bayar)} akan dihapus permanen. Pemasukan otomatis terkait juga ikut terhapus.
+                </p>
+                <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-2 py-1.5 mt-2">
+                  Untuk koreksi salah input kasir. Tidak bisa di-undo.
+                </p>
+              </div>
+              <button onClick={() => setConfirmDelete(null)} className="p-1 text-slate-400 hover:text-slate-600">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+              <button
+                onClick={() => setConfirmDelete(null)}
+                className="px-4 py-2 rounded-xl border border-slate-300 text-slate-700 hover:bg-slate-50 font-semibold text-xs"
+              >
+                Batal
+              </button>
+              <button
+                onClick={handleConfirmDelete}
+                className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs flex items-center gap-1.5"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Ya, Hapus</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
