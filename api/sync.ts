@@ -1,23 +1,33 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 let kv: any = null;
+function findRedisConfig(): { url: string; token: string } | null {
+  const env = process.env as Record<string, string | undefined>;
+  const directUrl = env.UPSTASH_REDIS_REST_URL || env.KV_REST_API_URL || env.STORAGE_REST_URL || env.STORAGE_KV_REST_API_URL || env.REDIS_REST_URL;
+  const directToken = env.UPSTASH_REDIS_REST_TOKEN || env.KV_REST_API_TOKEN || env.STORAGE_REST_TOKEN || env.STORAGE_KV_REST_API_TOKEN || env.REDIS_REST_TOKEN;
+  if (directUrl && directToken) return { url: directUrl, token: directToken };
+  let best: { url: string; token: string; key: string } | null = null;
+  for (const [k, v] of Object.entries(env)) {
+    if (!k.endsWith('_REST_URL') || !v || !v.startsWith('https://')) continue;
+    const base = k.replace('_REST_URL', '');
+    const token = env[base + '_REST_TOKEN'] || env[base + '_REST_API_TOKEN'];
+    if (!token) continue;
+    const cur = { url: v, token, key: k };
+    if (!best) best = cur;
+    else {
+      const score = (c: any) => (c.key.includes('UPSTASH') ? 0 : c.key.includes('KV') ? 1 : c.key.includes('STORAGE') ? 2 : c.key.includes('REDIS') ? 3 : 10);
+      if (score(cur) < score(best)) best = cur;
+    }
+  }
+  return best ? { url: best.url, token: best.token } : null;
+}
 async function getKv() {
   if (kv) return kv;
-  // Prefer Upstash (new) → fallback KV (legacy)
-  const hasUpstash = process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN;
-  const hasKv = process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN;
-  if (!hasUpstash && !hasKv) return null;
+  const cfg = findRedisConfig();
+  if (!cfg) return null;
   try {
-    if (hasUpstash) {
-      const { Redis } = await import('@upstash/redis');
-      kv = new Redis({
-        url: process.env.UPSTASH_REDIS_REST_URL!,
-        token: process.env.UPSTASH_REDIS_REST_TOKEN!,
-      });
-      return kv;
-    }
-    const mod = await import('@vercel/kv');
-    kv = mod.kv;
+    const { Redis } = await import('@upstash/redis');
+    kv = new Redis({ url: cfg.url, token: cfg.token });
     return kv;
   } catch {
     return null;
@@ -49,9 +59,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const kvs = await getKv();
   if (!kvs) {
+    const avail = Object.keys(process.env).filter(k => k.includes('REDIS') || k.includes('KV') || k.includes('STORAGE')).join(', ') || '(none)';
     return res.status(503).json({
       error: 'KV_NOT_ENABLED',
-      message: 'Aktifkan Redis di Vercel: vercel.com → dashboard-finance-umkm → Storage → Create Database → Upstash Redis → Connect. Tanpa ini data masih kesimpen lokal per-HP.',
+      avail_keys_hint: avail,
+      message: 'Redis env tidak ditemukan. Cek Vercel → Storage → Upstash Redis → env harus ke-inject (redeploy mungkin perlu).',
     });
   }
 
