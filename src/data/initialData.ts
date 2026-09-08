@@ -23,6 +23,17 @@ export const INITIAL_USERS: User[] = [
     // default password: rizqan123 — OWNER bisa ganti di Pengaturan
     password_hash: '51da9f111dab19bfb83aee8904fbd071c444c579cf6b60f3712164f28aa19e58',
   },
+  {
+    id: 'user-02',
+    nama: 'Saffana',
+    email: 'saffanap@gmail.com',
+    role: 'MANAGER',
+    avatar: 'https://i.pravatar.cc/150?u=saffana',
+    is_active: true,
+    usaha_id: 'usaha-01',
+    // password: saffanap29
+    password_hash: '9f0d1f7e2290ff928be37d1c2cf1fb3369308aca1ed412acc79b2a73a4a9a568',
+  },
 ];
 
 // Helper to build 6 Poody products M 10k/5.1k L 12k/6.1k

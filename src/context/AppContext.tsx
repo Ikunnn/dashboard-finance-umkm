@@ -171,6 +171,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         if (riz && !riz.password_hash) {
           riz.password_hash = '51da9f111dab19bfb83aee8904fbd071c444c579cf6b60f3712164f28aa19e58'; // rizqan123
         }
+        // migration: inject Saffana MANAGER if missing
+        if (!parsed.some(u => u.email.toLowerCase() === 'saffanap@gmail.com')) {
+          parsed.push({
+            id: 'user-02',
+            nama: 'Saffana',
+            email: 'saffanap@gmail.com',
+            role: 'MANAGER',
+            avatar: 'https://i.pravatar.cc/150?u=saffana',
+            is_active: true,
+            usaha_id: 'usaha-01',
+            password_hash: '9f0d1f7e2290ff928be37d1c2cf1fb3369308aca1ed412acc79b2a73a4a9a568',
+          } as User);
+        }
         return parsed;
       } catch { return INITIAL_USERS; }
     }
