@@ -2,32 +2,29 @@ import React from 'react';
 import {
   ArrowDownLeft,
   ArrowUpRight,
-  Boxes,
   LayoutDashboard,
-  Menu,
   Receipt,
   ShoppingCart,
 } from 'lucide-react';
 import { NavTab, useApp } from '../context/AppContext';
 
 interface BottomNavProps {
-  onOpenMenu: () => void;
+  onOpenMenu?: () => void;
 }
 
-export const BottomNav: React.FC<BottomNavProps> = ({ onOpenMenu }) => {
+export const BottomNav: React.FC<BottomNavProps> = () => {
   const {
     activeTab,
     setActiveTab,
     cart,
     heldTransactions,
-    lowStockItems,
     canAccess,
   } = useApp();
 
   const totalCartQty = cart.reduce((sum, item) => sum + item.qty, 0);
 
   const navItems: {
-    tab: NavTab | 'menu';
+    tab: NavTab;
     label: string;
     icon: React.ComponentType<{ className?: string }>;
     badge?: number | string;
@@ -49,6 +46,14 @@ export const BottomNav: React.FC<BottomNavProps> = ({ onOpenMenu }) => {
       action: () => setActiveTab('kasir'),
     },
     {
+      tab: 'riwayat_kasir',
+      label: 'Riwayat',
+      icon: Receipt,
+      action: () => {
+        if (canAccess('kasir')) setActiveTab('riwayat_kasir');
+      },
+    },
+    {
       tab: 'pemasukan',
       label: 'Pemasukan',
       icon: ArrowDownLeft,
@@ -64,14 +69,6 @@ export const BottomNav: React.FC<BottomNavProps> = ({ onOpenMenu }) => {
         if (canAccess('pengeluaran')) setActiveTab('pengeluaran');
       },
     },
-    {
-      tab: 'menu',
-      label: 'Menu',
-      icon: Menu,
-      badge: lowStockItems.length > 0 ? lowStockItems.length : undefined,
-      badgeColor: 'bg-red-500 text-white',
-      action: onOpenMenu,
-    },
   ];
 
   return (
@@ -81,7 +78,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ onOpenMenu }) => {
     >
       <div className="flex items-center justify-around px-1 py-1">
         {navItems.map(item => {
-          const isActive = item.tab !== 'menu' && activeTab === item.tab;
+          const isActive = activeTab === item.tab;
           const Icon = item.icon;
 
           return (
