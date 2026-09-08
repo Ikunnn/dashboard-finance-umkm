@@ -145,7 +145,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Business and Users
   const [usaha, setUsaha] = useState<Usaha>(() => {
     const saved = localStorage.getItem('umkm_usaha');
-    return saved ? JSON.parse(saved) : INITIAL_USAHA;
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (parsed.nama_usaha && parsed.nama_usaha.toLowerCase().includes('kopi')) return INITIAL_USAHA;
+        return parsed;
+      } catch { return INITIAL_USAHA; }
+    }
+    return INITIAL_USAHA;
   });
 
   const [users, setUsers] = useState<User[]>(() => {
@@ -228,59 +235,92 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (saved) {
       try {
         const parsed: Produk[] = JSON.parse(saved);
-        const poodyIdx = parsed.findIndex(p => p.nama_produk.toLowerCase().includes('poody'));
-        if (poodyIdx > -1) {
-          parsed[poodyIdx] = {
-            ...parsed[poodyIdx],
-            kategori: parsed[poodyIdx].kategori || 'Dessert',
-            harga_jual: 10000,
-            harga_modal: 5500,
-            satuan: parsed[poodyIdx].satuan || 'cup',
-            varian: [
-              { id: 'var-poody-m', nama: 'Size M', harga_jual: 10000, harga_modal: 5500 },
-              { id: 'var-poody-l', nama: 'Size L', harga_jual: 12000, harga_modal: 6500 },
-            ],
-          };
-          return parsed;
-        } else {
-          return [INITIAL_PRODUK[0], ...parsed];
-        }
-      } catch (e) {
-        return INITIAL_PRODUK;
-      }
+        const isOld = parsed.some((pr: any) => /kopi susu|nasi goreng|ayam geprek|mie goreng|pisang goreng|roti bakar|dimsum|americano|matcha cream/i.test(pr.nama_produk));
+        const hasToppings = parsed.some((pr: any) => pr.kategori === 'Topping');
+        if (isOld || parsed.length < 13 || !hasToppings) return INITIAL_PRODUK;
+        return parsed;
+      } catch { return INITIAL_PRODUK; }
     }
     return INITIAL_PRODUK;
   });
 
   const [bahanBaku, setBahanBaku] = useState<BahanBaku[]>(() => {
     const saved = localStorage.getItem('umkm_bahan_baku');
-    return saved ? JSON.parse(saved) : INITIAL_BAHAN_BAKU;
+    if (saved) {
+      try {
+        const parsed: BahanBaku[] = JSON.parse(saved);
+        const isOld = parsed.some((b: any) => /biji kopi|beras ramos|ayam fillet segar/i.test(b.nama_bahan));
+        if (isOld) return INITIAL_BAHAN_BAKU;
+        return parsed;
+      } catch { return INITIAL_BAHAN_BAKU; }
+    }
+    return INITIAL_BAHAN_BAKU;
   });
 
   const [riwayatStok, setRiwayatStok] = useState<RiwayatStok[]>(() => {
     const saved = localStorage.getItem('umkm_riwayat_stok');
-    return saved ? JSON.parse(saved) : INITIAL_RIWAYAT_STOK;
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        const isOld = JSON.stringify(parsed).includes('Rian Hidayat') || JSON.stringify(parsed).includes('Budi Santoso') || JSON.stringify(parsed).includes('Siti Rahma');
+        if (isOld) return INITIAL_RIWAYAT_STOK;
+        return parsed;
+      } catch { return INITIAL_RIWAYAT_STOK; }
+    }
+    return INITIAL_RIWAYAT_STOK;
   });
 
   // Transactions, Income, Expense
   const [transaksi, setTransaksi] = useState<Transaksi[]>(() => {
     const saved = localStorage.getItem('umkm_transaksi');
-    return saved ? JSON.parse(saved) : INITIAL_TRANSAKSI;
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        const isOld = JSON.stringify(parsed).includes('Rian Hidayat') || JSON.stringify(parsed).includes('Budi Santoso') || JSON.stringify(parsed).includes('Siti Rahma');
+        if (isOld) return INITIAL_TRANSAKSI;
+        return parsed;
+      } catch { return INITIAL_TRANSAKSI; }
+    }
+    return INITIAL_TRANSAKSI;
   });
 
   const [pemasukan, setPemasukan] = useState<Pemasukan[]>(() => {
     const saved = localStorage.getItem('umkm_pemasukan');
-    return saved ? JSON.parse(saved) : INITIAL_PEMASUKAN;
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        const isOld = JSON.stringify(parsed).includes('Rian Hidayat') || JSON.stringify(parsed).includes('Budi Santoso') || JSON.stringify(parsed).includes('Siti Rahma');
+        if (isOld) return INITIAL_PEMASUKAN;
+        return parsed;
+      } catch { return INITIAL_PEMASUKAN; }
+    }
+    return INITIAL_PEMASUKAN;
   });
 
   const [pengeluaran, setPengeluaran] = useState<Pengeluaran[]>(() => {
     const saved = localStorage.getItem('umkm_pengeluaran');
-    return saved ? JSON.parse(saved) : INITIAL_PENGELUARAN;
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        const isOld = JSON.stringify(parsed).includes('Rian Hidayat') || JSON.stringify(parsed).includes('Budi Santoso') || JSON.stringify(parsed).includes('Siti Rahma');
+        if (isOld) return INITIAL_PENGELUARAN;
+        return parsed;
+      } catch { return INITIAL_PENGELUARAN; }
+    }
+    return INITIAL_PENGELUARAN;
   });
 
   const [kategori, setKategori] = useState<KategoriItem[]>(() => {
     const saved = localStorage.getItem('umkm_kategori');
-    return saved ? JSON.parse(saved) : INITIAL_KATEGORI;
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        const isOldCat = parsed.some((k:any)=> k.nama==='Minuman' || k.nama==='Makanan' || k.nama==='Snack');
+        if (isOldCat) return INITIAL_KATEGORI;
+        return parsed;
+      } catch { return INITIAL_KATEGORI; }
+    }
+    return INITIAL_KATEGORI;
   });
 
   // POS State
