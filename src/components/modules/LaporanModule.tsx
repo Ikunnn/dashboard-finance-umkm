@@ -28,11 +28,12 @@ import {
 } from 'recharts';
 import { useApp } from '../../context/AppContext';
 import { exportToCSV, formatDateIndo, formatNumber, formatRupiah, getTodayDateString } from '../../utils/formatters';
+import { hppForItem } from '../../utils/poodyFinance';
 
 type PeriodType = 'harian' | 'mingguan' | 'bulanan' | 'custom';
 
 export const LaporanModule: React.FC = () => {
-  const { pemasukan, pengeluaran, usaha } = useApp();
+  const { pemasukan, pengeluaran, transaksi, usaha } = useApp();
 
   const [period, setPeriod] = useState<PeriodType>('bulanan');
   const [startDate, setStartDate] = useState(() => {
@@ -105,10 +106,15 @@ export const LaporanModule: React.FC = () => {
 
     const totalPendapatan = penjualanKasir + penjualanOnline + pendapatanLain;
 
-    // 2. HPP (Bahan Baku)
-    const hppBahanBaku = filteredPengeluaran
-      .filter(p => p.kategori_nama.toLowerCase().includes('bahan baku'))
-      .reduce((s, p) => s + p.jumlah, 0);
+    // 2. HPP REAL Poody (hitung per cup dari transaksi: M 5.1k / L 6.1k + topping)
+    const filteredTransaksi = transaksi.filter(trx => {
+      const d = trx.tanggal.slice(0, 10);
+      return d >= startDate && d <= endDate;
+    });
+    const hppBahanBaku = filteredTransaksi.reduce(
+      (sum, trx) => sum + trx.items.reduce((s, it) => s + hppForItem(it as any) * it.qty, 0),
+      0
+    );
 
     const totalHPP = hppBahanBaku;
 
@@ -171,7 +177,7 @@ export const LaporanModule: React.FC = () => {
       grossProfitMargin: Math.round(grossProfitMargin * 10) / 10,
       netProfitMargin: Math.round(netProfitMargin * 10) / 10,
     };
-  }, [filteredPemasukan, filteredPengeluaran]);
+  }, [filteredPemasukan, filteredPengeluaran, transaksi, startDate, endDate]);
 
   // Comparison Bar Chart data
   const comparisonChartData = [
@@ -214,7 +220,7 @@ export const LaporanModule: React.FC = () => {
       { Pos: '   Pendapatan Lain-lain', Keterangan: 'Lainnya', Jumlah: financialReport.pendapatanLain },
       { Pos: '   TOTAL PENDAPATAN', Keterangan: 'A', Jumlah: financialReport.totalPendapatan },
       { Pos: '2. HARGA POKOK PENJUALAN (HPP)', Keterangan: '', Jumlah: '' },
-      { Pos: '   Pembelian Bahan Baku', Keterangan: 'Bahan', Jumlah: financialReport.hppBahanBaku },
+      { Pos: '   HPP Real Poody (per cup)', Keterangan: 'M5.1k/L6.1k+topping', Jumlah: financialReport.hppBahanBaku },
       { Pos: '   TOTAL HPP', Keterangan: 'B', Jumlah: financialReport.totalHPP },
       { Pos: '3. LABA KOTOR', Keterangan: 'A - B', Jumlah: financialReport.labaKotor },
       { Pos: '4. BEBAN OPERASIONAL', Keterangan: '', Jumlah: '' },
@@ -504,7 +510,7 @@ export const LaporanModule: React.FC = () => {
               <div className="py-1 space-y-0.5">
                 <div className="flex items-center justify-between px-3 sm:px-4 py-1.5 hover:bg-slate-50/60 rounded-lg transition-colors">
                   <span className="text-slate-600 text-xs pl-3 sm:pl-4 min-w-0 truncate">
-                    Pembelian & Pemakaian Bahan Baku
+                    HPP Real Poody (M 5.1k / L 6.1k + topping)
                   </span>
                   <div className="flex items-center justify-end gap-1.5 font-mono tabular-nums shrink-0 text-xs sm:text-sm">
                     <span className="text-[11px] font-medium text-slate-400">Rp</span>
