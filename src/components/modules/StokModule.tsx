@@ -12,6 +12,7 @@ import {
   Package,
   Plus,
   Search,
+  Pencil,
   Trash2,
   X,
 } from 'lucide-react';
@@ -24,6 +25,8 @@ export const StokModule: React.FC = () => {
     bahanBaku,
     riwayatStok,
     addBahanBaku,
+    updateBahanBaku,
+    deleteBahanBaku,
     recordStokMasuk,
     recordStokKeluar,
     canAccess,
@@ -36,6 +39,10 @@ export const StokModule: React.FC = () => {
   // Modals
   const [showAddBahanModal, setShowAddBahanModal] = useState(false);
   const [showStockModal, setShowStockModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingBahan, setEditingBahan] = useState<BahanBaku | null>(null);
+  const [editForm, setEditForm] = useState({ nama_bahan: '', kategori: '', satuan: 'kg', stok_minimum: 1, harga_terakhir: 0, supplier: '' });
+  const [deleteConfirm, setDeleteConfirm] = useState<BahanBaku | null>(null);
   const [stockModalType, setStockModalType] = useState<'MASUK' | 'KELUAR'>('MASUK');
   const [selectedBahan, setSelectedBahan] = useState<BahanBaku | null>(null);
 
@@ -119,6 +126,23 @@ export const StokModule: React.FC = () => {
     setShowAddBahanModal(false);
   };
 
+  const openEditModal = (b: BahanBaku) => {
+    setEditingBahan(b);
+    setEditForm({ nama_bahan: b.nama_bahan, kategori: b.kategori, satuan: b.satuan, stok_minimum: b.stok_minimum, harga_terakhir: b.harga_terakhir, supplier: b.supplier || '' });
+    setShowEditModal(true);
+  };
+  const handleEditSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingBahan || !editForm.nama_bahan.trim()) return;
+    updateBahanBaku(editingBahan.id, { nama_bahan: editForm.nama_bahan.trim(), kategori: editForm.kategori.trim() || 'Bahan Utama', satuan: editForm.satuan, stok_minimum: Number(editForm.stok_minimum), harga_terakhir: Number(editForm.harga_terakhir), supplier: editForm.supplier.trim() || undefined });
+    setShowEditModal(false);
+    setEditingBahan(null);
+  };
+  const handleDeleteBahan = () => {
+    if (!deleteConfirm) return;
+    deleteBahanBaku(deleteConfirm.id);
+    setDeleteConfirm(null);
+  };
   const handleExportCSV = () => {
     if (activeTab === 'daftar') {
       const rows = bahanBaku.map(b => ({
@@ -302,24 +326,28 @@ export const StokModule: React.FC = () => {
                       </div>
                     </div>
 
-                    {canEdit && (
-                      <div className="flex items-center gap-2 pt-1">
-                        <button
-                          onClick={() => handleOpenStockModal(b, 'MASUK')}
-                          className="flex-1 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-bold transition-colors flex items-center justify-center gap-1 active:scale-98"
-                        >
-                          <Plus className="w-3.5 h-3.5" />
-                          <span>+ Stok Masuk</span>
-                        </button>
-                        <button
-                          onClick={() => handleOpenStockModal(b, 'KELUAR')}
-                          className="flex-1 py-1.5 rounded-xl bg-red-50 hover:bg-red-100 text-red-700 text-xs font-bold transition-colors flex items-center justify-center gap-1 active:scale-98"
-                        >
-                          <Minus className="w-3.5 h-3.5" />
-                          <span>- Pakai Bahan</span>
-                        </button>
-                      </div>
-                    )}
+                    <div className="flex flex-wrap items-center gap-2 pt-1">
+                      <button
+                        onClick={() => handleOpenStockModal(b, 'MASUK')}
+                        className="flex-1 min-w-[92px] py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-bold flex items-center justify-center gap-1"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>Masuk</span>
+                      </button>
+                      <button
+                        onClick={() => handleOpenStockModal(b, 'KELUAR')}
+                        className="flex-1 min-w-[92px] py-1.5 rounded-xl bg-red-50 hover:bg-red-100 text-red-700 text-xs font-bold flex items-center justify-center gap-1"
+                      >
+                        <Minus className="w-3.5 h-3.5" />
+                        <span>Pakai</span>
+                      </button>
+                      {canEdit && (
+                        <>
+                          <button onClick={() => openEditModal(b)} className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold flex items-center gap-1"><Pencil className="w-3.5 h-3.5" />Edit</button>
+                          <button onClick={() => setDeleteConfirm(b)} className="px-3 py-1.5 rounded-xl bg-red-50 hover:bg-red-100 text-red-700 text-xs font-bold flex items-center gap-1"><Trash2 className="w-3.5 h-3.5" />Hapus</button>
+                        </>
+                      )}
+                    </div>
                   </div>
                 );
               })
@@ -338,7 +366,7 @@ export const StokModule: React.FC = () => {
                   <th className="py-3 px-4">Harga Terakhir</th>
                   <th className="py-3 px-4">Nilai Valuasi</th>
                   <th className="py-3 px-4">Supplier</th>
-                  {canEdit && <th className="py-3 px-4 text-center">Aksi Cepat</th>}
+                  <th className="py-3 px-4 text-center">Aksi Cepat</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -390,28 +418,16 @@ export const StokModule: React.FC = () => {
                         <td className="py-3 px-4 text-slate-500 text-[11px]">
                           {b.supplier || '-'}
                         </td>
-                        {canEdit && (
                           <td className="py-3 px-4 text-center">
-                            <div className="inline-flex items-center gap-1.5">
-                              <button
-                                onClick={() => handleOpenStockModal(b, 'MASUK')}
-                                className="px-2 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-semibold transition-colors flex items-center gap-0.5"
-                                title="Tambah Stok Masuk"
-                              >
-                                <Plus className="w-3 h-3" />
-                                <span>Masuk</span>
-                              </button>
-                              <button
-                                onClick={() => handleOpenStockModal(b, 'KELUAR')}
-                                className="px-2 py-1 rounded-lg bg-red-50 hover:bg-red-100 text-red-700 text-xs font-semibold transition-colors flex items-center gap-0.5"
-                                title="Catat Pemakaian / Stok Keluar"
-                              >
-                                <Minus className="w-3 h-3" />
-                                <span>Pakai</span>
-                              </button>
+                            <div className="inline-flex items-center gap-1">
+                              <button onClick={() => handleOpenStockModal(b, 'MASUK')} className="px-2 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-semibold flex items-center gap-0.5" title="Stok Masuk"><Plus className="w-3 h-3" />Masuk</button>
+                              <button onClick={() => handleOpenStockModal(b, 'KELUAR')} className="px-2 py-1 rounded-lg bg-red-50 hover:bg-red-100 text-red-700 text-xs font-semibold flex items-center gap-0.5" title="Pakai"><Minus className="w-3 h-3" />Pakai</button>
+                              {canEdit && (<>
+                                <button onClick={() => openEditModal(b)} className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700" title="Edit"><Pencil className="w-3.5 h-3.5" /></button>
+                                <button onClick={() => setDeleteConfirm(b)} className="p-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-700" title="Hapus"><Trash2 className="w-3.5 h-3.5" /></button>
+                              </>)}
                             </div>
                           </td>
-                        )}
                       </tr>
                     );
                   })
@@ -650,6 +666,33 @@ export const StokModule: React.FC = () => {
         </div>
       )}
 
+      {/* MODAL: Edit Bahan Baku */}
+      {showEditModal && editingBahan && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full shadow-2xl p-5 space-y-4 animate-in zoom-in-95">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <h3 className="font-bold text-sm text-slate-900">Edit Bahan Baku</h3>
+              <button onClick={() => setShowEditModal(false)} className="p-1 text-slate-400 hover:text-slate-600"><X className="w-4 h-4" /></button>
+            </div>
+            <form onSubmit={handleEditSubmit} className="space-y-3 text-xs">
+              <div><label className="font-bold text-slate-700 block mb-1">Nama Bahan Baku *</label><input type="text" required value={editForm.nama_bahan} onChange={e=>setEditForm(s=>({...s,nama_bahan:e.target.value}))} className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none" /></div>
+              <div className="grid grid-cols-2 gap-2"><div><label className="font-bold text-slate-700 block mb-1">Kategori</label><input type="text" value={editForm.kategori} onChange={e=>setEditForm(s=>({...s,kategori:e.target.value}))} className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none" /></div><div><label className="font-bold text-slate-700 block mb-1">Satuan</label><select value={editForm.satuan} onChange={e=>setEditForm(s=>({...s,satuan:e.target.value}))} className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-semibold focus:ring-2 focus:ring-emerald-500 focus:outline-none"><option value="kg">kg</option><option value="gram">gram</option><option value="liter">liter</option><option value="ml">ml</option><option value="pcs">pcs</option><option value="pack">pack</option><option value="cup">cup</option></select></div></div>
+              <div className="grid grid-cols-2 gap-2"><div><label className="font-bold text-slate-700 block mb-1">Batas Minimum *</label><input type="number" min="0" step="any" required value={editForm.stok_minimum} onChange={e=>setEditForm(s=>({...s,stok_minimum:Number(e.target.value)}))} className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none" /></div><div><label className="font-bold text-slate-700 block mb-1">Harga / Satuan (Rp)</label><input type="number" min="0" step="any" value={editForm.harga_terakhir} onChange={e=>setEditForm(s=>({...s,harga_terakhir:Number(e.target.value)}))} className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none" /></div></div>
+              <div><label className="font-bold text-slate-700 block mb-1">Supplier</label><input type="text" value={editForm.supplier} onChange={e=>setEditForm(s=>({...s,supplier:e.target.value}))} className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none" /></div>
+              <div className="flex justify-end gap-2 pt-3 border-t border-slate-100"><button type="button" onClick={()=>setShowEditModal(false)} className="px-4 py-2 rounded-xl border border-slate-300 text-slate-700 hover:bg-slate-100 font-semibold">Batal</button><button type="submit" className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold">Simpan Perubahan</button></div>
+            </form>
+          </div>
+        </div>
+      )}
+      {deleteConfirm && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-sm w-full shadow-2xl p-5 space-y-4 animate-in zoom-in-95">
+            <h3 className="font-bold text-sm text-slate-900 flex items-center gap-2"><Trash2 className="w-4 h-4 text-red-600" /> Hapus Bahan Baku?</h3>
+            <p className="text-xs text-slate-600">Yakin hapus <b>{deleteConfirm.nama_bahan}</b> ({deleteConfirm.satuan})? Riwayat stok tetap tersimpan, tapi bahan hilang dari katalog. Tidak bisa di-undo.</p>
+            <div className="flex justify-end gap-2 pt-2"><button onClick={()=>setDeleteConfirm(null)} className="px-4 py-2 rounded-xl border border-slate-300 text-slate-700 hover:bg-slate-100 text-xs font-semibold">Batal</button><button onClick={handleDeleteBahan} className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold">Hapus</button></div>
+          </div>
+        </div>
+      )}
       {/* MODAL: Tambah Bahan Baku Baru */}
       {showAddBahanModal && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
