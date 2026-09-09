@@ -199,7 +199,7 @@ export const PosModule: React.FC<PosModuleProps> = ({ onOpenReceipt }) => {
         </button>
       </div>
 
-      <div className="flex flex-col lg:flex-row gap-5 items-start">
+      <div className="flex flex-col lg:flex-row gap-5 lg:gap-6 items-start">
         {/* Left: Product Catalog Grid */}
         <div className={`flex-1 w-full space-y-3 sm:space-y-4 ${mobileTab === 'katalog' ? 'block' : 'hidden lg:block'}`}>
           {/* Search & Top Action Bar */}
@@ -260,8 +260,8 @@ export const PosModule: React.FC<PosModuleProps> = ({ onOpenReceipt }) => {
             ))}
           </div>
 
-          {/* Product Grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5 sm:gap-4">
+          {/* Product Grid — tablet horizontal 3x3 biar menu gede */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 lg:gap-5">
             {filteredProducts.map(prod => {
               const hasVariants = Boolean(prod.varian && prod.varian.length > 0);
               const totalQtyInCart = cart
@@ -297,7 +297,7 @@ export const PosModule: React.FC<PosModuleProps> = ({ onOpenReceipt }) => {
                       addToCart(prod);
                     }
                   }}
-                  className="group relative bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-xs hover:border-emerald-500 hover:shadow-md transition-all cursor-pointer flex flex-col justify-between active:scale-[0.98]"
+                  className="group relative bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm hover:border-emerald-500 hover:shadow-md transition-all cursor-pointer flex flex-col justify-between active:scale-[0.98]"
                 >
                   {/* Image & Category Tag */}
                   <div className="relative aspect-square w-full bg-slate-50 overflow-hidden flex items-center justify-center">
@@ -343,13 +343,13 @@ export const PosModule: React.FC<PosModuleProps> = ({ onOpenReceipt }) => {
                   </div>
 
                   {/* Info & Price */}
-                  <div className="p-2.5 sm:p-3 flex-1 flex flex-col justify-between">
+                  <div className="p-3 sm:p-3.5 lg:p-4 flex-1 flex flex-col justify-between">
                     <div>
-                      <h4 className="font-bold text-slate-900 text-xs sm:text-sm line-clamp-1 group-hover:text-emerald-700 transition-colors">
+                      <h4 className="font-bold text-slate-900 text-sm sm:text-[15px] lg:text-base line-clamp-1 group-hover:text-emerald-700 transition-colors">
                         {prod.nama_produk}
                       </h4>
                       <div className="mt-1 flex items-baseline justify-between">
-                        <span className="text-xs sm:text-sm font-black font-mono text-emerald-700">
+                        <span className="text-sm sm:text-[15px] lg:text-base font-black font-mono text-emerald-700">
                           {priceLabel}
                         </span>
                         <span className="text-[10px] text-slate-400">/{prod.satuan}</span>
@@ -445,7 +445,7 @@ export const PosModule: React.FC<PosModuleProps> = ({ onOpenReceipt }) => {
 
         {/* Right: Active Cart Panel */}
         <div
-          className={`w-full lg:w-96 bg-white rounded-2xl border border-slate-200 shadow-sm flex flex-col h-auto lg:sticky lg:top-20 ${
+          className={`w-full lg:w-[380px] xl:w-96 bg-white rounded-2xl border border-slate-200 shadow-sm flex flex-col h-auto lg:sticky lg:top-20 ${
             mobileTab === 'keranjang' ? 'flex' : 'hidden lg:flex'
           }`}
         >
