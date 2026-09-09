@@ -9,6 +9,7 @@ import {
   Filter,
   Paperclip,
   PieChart as PieIcon,
+  Minus,
   Plus,
   Search,
   Trash2,
@@ -185,8 +186,8 @@ export const PengeluaranModule: React.FC = () => {
               onClick={handleOpenAdd}
               className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs shadow-xs transition-colors active:scale-95"
             >
-              <Plus className="w-4 h-4" />
-              <span>+ Pengeluaran</span>
+              <Minus className="w-4 h-4" />
+              <span>Tambah Pengeluaran</span>
             </button>
           )}
         </div>
