@@ -199,11 +199,11 @@ export const PosModule: React.FC<PosModuleProps> = ({ onOpenReceipt }) => {
         </button>
       </div>
 
-      <div className="flex flex-col lg:flex-row gap-5 lg:gap-6 items-start">
+      <div className="flex flex-col lg:flex-row gap-5 lg:gap-8 xl:gap-10 items-start">
         {/* Left: Product Catalog Grid */}
         <div className={`flex-1 w-full space-y-3 sm:space-y-4 ${mobileTab === 'katalog' ? 'block' : 'hidden lg:block'}`}>
           {/* Search & Top Action Bar */}
-          <div className="bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-200 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div className="bg-white p-3.5 sm:p-4 lg:p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3 lg:gap-4">
             {/* Search Input */}
             <div className="relative w-full sm:w-80">
               <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -244,7 +244,7 @@ export const PosModule: React.FC<PosModuleProps> = ({ onOpenReceipt }) => {
           </div>
 
           {/* Category Filter Tabs */}
-          <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+          <div className="flex items-center gap-2 lg:gap-3 overflow-x-auto pb-1 lg:pb-2 scrollbar-none">
             {categories.map(cat => (
               <button
                 key={cat}
@@ -261,7 +261,7 @@ export const PosModule: React.FC<PosModuleProps> = ({ onOpenReceipt }) => {
           </div>
 
           {/* Product Grid — tablet horizontal 3x3 biar menu gede */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 lg:gap-5">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 lg:gap-6 xl:gap-7">
             {filteredProducts.map(prod => {
               const hasVariants = Boolean(prod.varian && prod.varian.length > 0);
               const totalQtyInCart = cart
@@ -300,7 +300,7 @@ export const PosModule: React.FC<PosModuleProps> = ({ onOpenReceipt }) => {
                   className="group relative bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm hover:border-emerald-500 hover:shadow-md transition-all cursor-pointer flex flex-col justify-between active:scale-[0.98]"
                 >
                   {/* Image & Category Tag */}
-                  <div className="relative aspect-square w-full bg-slate-50 overflow-hidden flex items-center justify-center">
+                  <div className="relative aspect-square lg:aspect-[4/3] w-full bg-slate-50 overflow-hidden flex items-center justify-center">
                     {prod.gambar ? (
                       <>
                         {/* Ambient soft background to fill container edges seamlessly */}
@@ -343,7 +343,7 @@ export const PosModule: React.FC<PosModuleProps> = ({ onOpenReceipt }) => {
                   </div>
 
                   {/* Info & Price */}
-                  <div className="p-3 sm:p-3.5 lg:p-4 flex-1 flex flex-col justify-between">
+                  <div className="p-3.5 sm:p-4 lg:p-5 flex-1 flex flex-col justify-between gap-2">
                     <div>
                       <h4 className="font-bold text-slate-900 text-sm sm:text-[15px] lg:text-base line-clamp-1 group-hover:text-emerald-700 transition-colors">
                         {prod.nama_produk}
@@ -445,7 +445,7 @@ export const PosModule: React.FC<PosModuleProps> = ({ onOpenReceipt }) => {
 
         {/* Right: Active Cart Panel */}
         <div
-          className={`w-full lg:w-[380px] xl:w-96 bg-white rounded-2xl border border-slate-200 shadow-sm flex flex-col h-auto lg:sticky lg:top-20 ${
+          className={`w-full lg:w-[360px] xl:w-[400px] bg-white rounded-2xl border border-slate-200 shadow-sm flex flex-col h-auto lg:sticky lg:top-20 ${
             mobileTab === 'keranjang' ? 'flex' : 'hidden lg:flex'
           }`}
         >
