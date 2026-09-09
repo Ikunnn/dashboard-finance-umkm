@@ -356,23 +356,23 @@ export const PemasukanModule: React.FC = () => {
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-3 text-xs">
-              <div className="grid grid-cols-2 gap-2">
-                <div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="min-w-0">
                   <label className="font-bold text-slate-700 block mb-1">Tanggal *</label>
                   <input
                     type="date"
                     required
                     value={tanggal}
                     onChange={e => setTanggal(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                    className="w-full min-w-0 px-3 py-2 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                   />
                 </div>
-                <div>
+                <div className="min-w-0">
                   <label className="font-bold text-slate-700 block mb-1">Kategori *</label>
                   <select
                     value={kategoriId}
                     onChange={e => setKategoriId(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-semibold focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                    className="w-full min-w-0 px-3 py-2 rounded-xl border border-slate-300 text-xs font-semibold focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                   >
                     {kategoriPemasukan.map(k => (
                       <option key={k.id} value={k.id}>
@@ -405,7 +405,7 @@ export const PemasukanModule: React.FC = () => {
                   value={deskripsi}
                   onChange={e => setDeskripsi(e.target.value)}
                   placeholder="Contoh: Pesanan katering kantor / pelunasan piutang"
-                  className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                  className="w-full min-w-0 px-3 py-2 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                 />
               </div>
 
@@ -418,7 +418,7 @@ export const PemasukanModule: React.FC = () => {
                   value={buktiUrl}
                   onChange={e => setBuktiUrl(e.target.value)}
                   placeholder="https://..."
-                  className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                  className="w-full min-w-0 px-3 py-2 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                 />
               </div>
 
