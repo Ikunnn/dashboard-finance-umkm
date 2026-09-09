@@ -2,6 +2,9 @@ import { useEffect, useRef, useState } from 'react';
 
 const BIZ = 'biz_poody';
 const API = '/api/sync?biz=' + BIZ;
+// baked at build — set VITE_SYNC_TOKEN in Vercel env to override
+const SYNC_TOKEN: string = (import.meta as any).env?.VITE_SYNC_TOKEN || 'o4cR-KIf_50VvVX1CZOtDyPAnCzSvHf2';
+const syncHeaders: HeadersInit = SYNC_TOKEN ? { 'x-sync-token': SYNC_TOKEN } : {};
 
 type SyncStatus = 'idle' | 'local' | 'syncing' | 'synced' | 'kv_not_enabled' | 'error';
 
@@ -38,7 +41,7 @@ export function useCloudSync() {
   const pull = async (): Promise<boolean> => {
     try {
       setStatus('syncing');
-      const r = await fetch(API, { cache: 'no-store' });
+      const r = await fetch(API, { cache: 'no-store', headers: syncHeaders });
       if (r.status === 503) {
         const j = await r.json().catch(() => ({}));
         setStatus('kv_not_enabled');
@@ -77,7 +80,7 @@ export function useCloudSync() {
       if (!Object.keys(data).length) return false;
       const r = await fetch('/api/sync', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...syncHeaders },
         body: JSON.stringify({ biz: BIZ, data }),
       });
       if (r.status === 503) {

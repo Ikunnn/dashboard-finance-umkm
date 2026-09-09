@@ -50,12 +50,25 @@ function keyFor(biz: string, k: string) {
   return `biz:${biz}:${k}`;
 }
 
+const SYNC_TOKEN = process.env.SYNC_TOKEN || (process.env as any).VITE_SYNC_TOKEN || 'o4cR-KIf_50VvVX1CZOtDyPAnCzSvHf2';
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-sync-token');
 
   if (req.method === 'OPTIONS') return res.status(200).end();
+
+  if (SYNC_TOKEN) {
+    const got = (req.headers['x-sync-token'] as string) || (req.headers['x-sync-token'.toLowerCase()] as string) || (req.query.token as string) || (Array.isArray(req.headers['x-sync-token']) ? req.headers['x-sync-token'][0] : '') || '';
+    // also check lower-case header via raw
+    const h = (req.headers as any);
+    const got2 = h['x-sync-token'] || h['X-Sync-Token'] || h['x-sync-Token'] || got;
+    const tokenGot = String(got2 || got || '').trim();
+    if (tokenGot !== SYNC_TOKEN) {
+      return res.status(401).json({ error: 'UNAUTHORIZED', message: tokenGot ? 'Sync token salah' : 'Missing x-sync-token' });
+    }
+  }
 
   const kvs = await getKv();
   if (!kvs) {

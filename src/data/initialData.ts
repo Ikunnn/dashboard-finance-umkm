@@ -21,7 +21,7 @@ export const INITIAL_USERS: User[] = [
     is_active: true,
     usaha_id: 'usaha-01',
     // default password: rizqan123 — OWNER bisa ganti di Pengaturan
-    password_hash: '51da9f111dab19bfb83aee8904fbd071c444c579cf6b60f3712164f28aa19e58',
+    password_hash: '777f4d6797b447408afabefe661329d17ca111fe26ec0d7d458c7fc602c4eb26' // sha256(email:password) salted,
   },
   {
     id: 'user-02',
@@ -32,7 +32,7 @@ export const INITIAL_USERS: User[] = [
     is_active: true,
     usaha_id: 'usaha-01',
     // password: saffanap29
-    password_hash: '9f0d1f7e2290ff928be37d1c2cf1fb3369308aca1ed412acc79b2a73a4a9a568',
+    password_hash: '77563c0604bd9cf5f7074658399ab6a8aba652893950b8970d00851fc4fbbd5d' // sha256(email:password) salted,
   },
 ];
 

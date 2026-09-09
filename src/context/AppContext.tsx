@@ -941,12 +941,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const addUser = async (userData: Omit<User, 'id'> & { password?: string }) => {
     const { password, ...rest } = userData as any;
+    const emailForHash = (rest.email || rest.nama || '').toString();
     let password_hash: string | undefined;
     if (password) {
-      password_hash = await sha256Hex(password);
+      password_hash = await hashPassword(emailForHash, password);
     } else {
       // default temp password = 123456
-      password_hash = await sha256Hex('123456');
+      password_hash = await hashPassword(emailForHash, '123456');
     }
     const newUser: User = {
       ...(rest as Omit<User, 'id'>),
@@ -961,7 +962,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const { password, ...rest } = updates as any;
     let patch: Partial<User> = { ...rest };
     if (password) {
-      patch.password_hash = await sha256Hex(password);
+      const target = users.find(u => u.id === id);
+      const emailForHash = (rest.email || target?.email || '').toString();
+      patch.password_hash = await hashPassword(emailForHash, password);
     }
     setUsers(prev => prev.map(u => (u.id === id ? { ...u, ...patch } : u)));
     if (currentUser?.id === id) {

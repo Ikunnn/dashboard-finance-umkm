@@ -7,6 +7,12 @@ export async function sha256Hex(str: string): Promise<string> {
   return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
+// Salted password hash — email lower as salt (mitigasi rainbow table)
+// Format: sha256(email:password)
+export async function hashPassword(email: string, password: string): Promise<string> {
+  return sha256Hex(email.trim().toLowerCase() + ':' + password);
+}
+
 // Sync fallback for initialData seeding (not crypto-strong, but deterministic)
 // Used only if you need sync hash outside browser; actual login uses sha256Hex above
 export function simpleHash(str: string): string {
