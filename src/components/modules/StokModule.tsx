@@ -328,26 +328,16 @@ export const StokModule: React.FC = () => {
                       </div>
                     </div>
 
-                    <div className="flex flex-wrap items-center gap-2 pt-1">
-                      <button
-                        onClick={() => handleOpenStockModal(b, 'MASUK')}
-                        className="flex-1 min-w-[92px] py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-bold flex items-center justify-center gap-1"
-                      >
-                        <Plus className="w-3.5 h-3.5" />
-                        <span>Masuk</span>
-                      </button>
-                      <button
-                        onClick={() => handleOpenStockModal(b, 'KELUAR')}
-                        className="flex-1 min-w-[92px] py-1.5 rounded-xl bg-red-50 hover:bg-red-100 text-red-700 text-xs font-bold flex items-center justify-center gap-1"
-                      >
-                        <Minus className="w-3.5 h-3.5" />
-                        <span>Pakai</span>
-                      </button>
+                    <div className="space-y-2 pt-1">
+                      <div className="grid grid-cols-2 gap-2">
+                        <button onClick={() => handleOpenStockModal(b, 'MASUK')} className="py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-bold flex items-center justify-center gap-1"><Plus className="w-3.5 h-3.5" />Masuk</button>
+                        <button onClick={() => handleOpenStockModal(b, 'KELUAR')} className="py-1.5 rounded-xl bg-red-50 hover:bg-red-100 text-red-700 text-xs font-bold flex items-center justify-center gap-1"><Minus className="w-3.5 h-3.5" />Pakai</button>
+                      </div>
                       {canManageBahan && (
-                        <>
-                          <button onClick={() => openEditModal(b)} className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold flex items-center gap-1"><Pencil className="w-3.5 h-3.5" />Edit</button>
-                          <button onClick={() => setDeleteConfirm(b)} className="px-3 py-1.5 rounded-xl bg-red-50 hover:bg-red-100 text-red-700 text-xs font-bold flex items-center gap-1"><Trash2 className="w-3.5 h-3.5" />Hapus</button>
-                        </>
+                        <div className="grid grid-cols-2 gap-2">
+                          <button onClick={() => openEditModal(b)} className="py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold flex items-center justify-center gap-1 border border-slate-200"><Pencil className="w-3.5 h-3.5" />Edit</button>
+                          <button onClick={() => setDeleteConfirm(b)} className="py-1.5 rounded-xl bg-red-50 hover:bg-red-100 text-red-700 text-xs font-bold flex items-center justify-center gap-1 border border-red-200"><Trash2 className="w-3.5 h-3.5" />Hapus</button>
+                        </div>
                       )}
                     </div>
                   </div>
