@@ -31,17 +31,39 @@ function readLocal(): Record<string, any> {
   return out;
 }
 
+function isNewerLocal(localVal: any, cloudVal: any): boolean {
+  // For arrays: local has more items → keep local (user just added pemasukan/pengeluaran)
+  if (Array.isArray(localVal) && Array.isArray(cloudVal)) {
+    if (localVal.length > cloudVal.length) return true;
+    // if same length but local has newer created_at (compare max)
+    if (localVal.length === cloudVal.length && localVal.length > 0) {
+      try {
+        const maxLocal = Math.max(...localVal.map((x:any)=> new Date(x.created_at||x.tanggal||0).getTime()||0));
+        const maxCloud = Math.max(...cloudVal.map((x:any)=> new Date(x.created_at||x.tanggal||0).getTime()||0));
+        if (maxLocal > maxCloud) return true;
+      } catch {}
+    }
+  }
+  return false;
+}
+
 export function useCloudSync() {
   const [status, setStatus] = useState<SyncStatus>('idle');
   const [error, setError] = useState<string | null>(null);
   const lastPushRef = useRef<number>(0);
   const hasPulledRef = useRef(false);
+  const lastHashRef = useRef<string>('');
 
-  // Pull from KV → localStorage
+  // Pull from KV → localStorage (merge, jangan overwrite kalau local lebih baru)
   const pull = async (): Promise<boolean> => {
     try {
       setStatus('syncing');
       const r = await fetch(API, { cache: 'no-store', headers: syncHeaders });
+      if (r.status === 401) {
+        setStatus('error');
+        setError('Sync token salah — redeploy atau hard refresh');
+        return false;
+      }
       if (r.status === 503) {
         const j = await r.json().catch(() => ({}));
         setStatus('kv_not_enabled');
@@ -55,14 +77,25 @@ export function useCloudSync() {
         setStatus('local');
         return false;
       }
-      // write to localStorage
+      const local = readLocal();
+      let changed = false;
       for (const [k, v] of Object.entries(data)) {
-        localStorage.setItem(k, JSON.stringify(v));
+        const localVal = (local as any)[k];
+        if (localVal !== undefined && isNewerLocal(localVal, v)) {
+          // local lebih baru → jangan timpa, biarkan push yang kirim local ke cloud
+          continue;
+        }
+        const cur = localStorage.getItem(k);
+        const next = JSON.stringify(v);
+        if (cur !== next) {
+          localStorage.setItem(k, next);
+          changed = true;
+        }
       }
-      window.dispatchEvent(new Event('umkm-cloud-pulled'));
+      if (changed) window.dispatchEvent(new Event('umkm-cloud-pulled'));
       setStatus('synced');
       setError(null);
-      return true;
+      return changed;
     } catch (e: any) {
       setStatus('error');
       setError(String(e?.message || e));
@@ -70,10 +103,9 @@ export function useCloudSync() {
     }
   };
 
-  // Push local → KV
+  // Push local → KV (throttle 800ms, bukan 3s)
   const push = async (): Promise<boolean> => {
-    // throttle 3s
-    if (Date.now() - lastPushRef.current < 3000) return false;
+    if (Date.now() - lastPushRef.current < 800) return false;
     lastPushRef.current = Date.now();
     try {
       const data = readLocal();
@@ -83,6 +115,11 @@ export function useCloudSync() {
         headers: { 'Content-Type': 'application/json', ...syncHeaders },
         body: JSON.stringify({ biz: BIZ, data }),
       });
+      if (r.status === 401) {
+        setStatus('error');
+        setError('Sync token salah');
+        return false;
+      }
       if (r.status === 503) {
         const j = await r.json().catch(() => ({}));
         setStatus('kv_not_enabled');
@@ -104,11 +141,9 @@ export function useCloudSync() {
   useEffect(() => {
     if (hasPulledRef.current) return;
     hasPulledRef.current = true;
-    // pull in background, don't block render
     pull().then((didPull) => {
       if (!didPull) {
-        // first time: push local defaults to cloud so other devices can pull
-        setTimeout(() => push(), 1500);
+        setTimeout(() => push(), 800);
       }
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -133,17 +168,28 @@ export function useCloudSync() {
     };
   }, []);
 
-  // Debounced auto-push on local changes (listen storage & interval check)
+  // Auto-push: debounce 400ms + hash check tiap 800ms + event umkm-local-changed
   useEffect(() => {
     let t: any = null;
     const schedule = () => {
       clearTimeout(t);
-      t = setTimeout(() => push(), 1200);
+      t = setTimeout(() => push(), 400);
     };
-    // check every 2s if local changed vs last push
-    const iv = setInterval(schedule, 2500);
+    const checkHash = () => {
+      try {
+        const h = JSON.stringify(readLocal());
+        if (h !== lastHashRef.current) {
+          lastHashRef.current = h;
+          schedule();
+        }
+      } catch {}
+    };
+    // init hash
+    try { lastHashRef.current = JSON.stringify(readLocal()); } catch {}
+    const iv = setInterval(checkHash, 800);
     window.addEventListener('storage', schedule);
-    return () => { clearInterval(iv); clearTimeout(t); window.removeEventListener('storage', schedule); };
+    window.addEventListener('umkm-local-changed', schedule as any);
+    return () => { clearInterval(iv); clearTimeout(t); window.removeEventListener('storage', schedule); window.removeEventListener('umkm-local-changed', schedule as any); };
   }, []);
 
   return { status, error, pull, push };

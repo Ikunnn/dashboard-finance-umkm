@@ -28,7 +28,7 @@ import {
 } from '../types';
 import { getTodayDateString } from '../utils/formatters';
 import { POODY_TOPPINGS } from '../data/poodyCatalog';
-import { sha256Hex } from '../utils/hash';
+import { hashPassword, sha256Hex } from '../utils/hash';
 
 
 const toppingPriceMap: Record<string, number> = Object.fromEntries(POODY_TOPPINGS.map(t => [t.id, t.price]));
@@ -406,14 +406,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   useEffect(() => {
     localStorage.setItem('umkm_transaksi', JSON.stringify(transaksi));
+    window.dispatchEvent(new Event('umkm-local-changed'));
   }, [transaksi]);
 
   useEffect(() => {
     localStorage.setItem('umkm_pemasukan', JSON.stringify(pemasukan));
+    window.dispatchEvent(new Event('umkm-local-changed'));
   }, [pemasukan]);
 
   useEffect(() => {
     localStorage.setItem('umkm_pengeluaran', JSON.stringify(pengeluaran));
+    window.dispatchEvent(new Event('umkm-local-changed'));
   }, [pengeluaran]);
 
   // Role permissions per PRD 3.7.1
