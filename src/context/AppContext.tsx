@@ -186,7 +186,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         // migration: ensure Rizqan has password_hash if missing
         const riz = parsed.find(u => u.email.toLowerCase() === 'rizqan@poody.id');
         if (riz && !riz.password_hash) {
-          riz.password_hash = '51da9f111dab19bfb83aee8904fbd071c444c579cf6b60f3712164f28aa19e58'; // rizqan123
+          riz.password_hash = '777f4d6797b447408afabefe661329d17ca111fe26ec0d7d458c7fc602c4eb26'; // sha256(rizqan@poody.id:rizqan123)
         }
         // migration: inject Saffana MANAGER if missing
         if (!parsed.some(u => u.email.toLowerCase() === 'saffanap@gmail.com')) {
@@ -198,7 +198,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             avatar: 'https://i.pravatar.cc/150?u=saffana',
             is_active: true,
             usaha_id: 'usaha-01',
-            password_hash: '9f0d1f7e2290ff928be37d1c2cf1fb3369308aca1ed412acc79b2a73a4a9a568',
+            password_hash: '77563c0604bd9cf5f7074658399ab6a8aba652893950b8970d00851fc4fbbd5d', // sha256(saffanap@gmail.com:saffanap29)
           } as User);
         }
         return parsed;
@@ -227,15 +227,23 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (!user || !user.is_active) return false;
     // if account has no password_hash yet (legacy), allow any password and set it
     if (!user.password_hash) {
-      const hash = await sha256Hex(password);
+      const hash = await hashPassword(normalized, password);
       setUsers(prev => prev.map(u => u.id === user.id ? { ...u, password_hash: hash } : u));
       setCurrentUser({ ...user, password_hash: hash });
       localStorage.setItem('umkm_session', user.id);
       showToast(`Selamat datang, ${user.nama}!`, 'success');
       return true;
     }
-    const hash = await sha256Hex(password);
-    if (hash !== user.password_hash) return false;
+    // Try salted hash first (new format: sha256(email:password))
+    const saltedHash = await hashPassword(normalized, password);
+    // Also try legacy unsalted hash (sha256(password)) for backward compat
+    const legacyHash = await sha256Hex(password);
+    if (saltedHash !== user.password_hash && legacyHash !== user.password_hash) return false;
+    // If matched with legacy hash, migrate to salted hash
+    if (legacyHash === user.password_hash && saltedHash !== user.password_hash) {
+      setUsers(prev => prev.map(u => u.id === user.id ? { ...u, password_hash: saltedHash } : u));
+      user.password_hash = saltedHash;
+    }
     setCurrentUser(user);
     localStorage.setItem('umkm_session', user.id);
     showToast(`Selamat datang, ${user.nama}!`, 'success');
