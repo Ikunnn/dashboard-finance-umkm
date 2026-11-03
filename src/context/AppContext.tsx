@@ -29,6 +29,7 @@ import {
 import { getTodayDateString } from '../utils/formatters';
 import { POODY_TOPPINGS } from '../data/poodyCatalog';
 import { hashPassword, sha256Hex } from '../utils/hash';
+import { trackDeletion } from '../hooks/useCloudSync';
 
 
 const toppingPriceMap: Record<string, number> = Object.fromEntries(POODY_TOPPINGS.map(t => [t.id, t.price]));
@@ -386,22 +387,27 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Sync to localStorage
   useEffect(() => {
     localStorage.setItem('umkm_usaha', JSON.stringify(usaha));
+    window.dispatchEvent(new Event('umkm-local-changed'));
   }, [usaha]);
 
   useEffect(() => {
     localStorage.setItem('umkm_users', JSON.stringify(users));
+    window.dispatchEvent(new Event('umkm-local-changed'));
   }, [users]);
 
   useEffect(() => {
     localStorage.setItem('umkm_produk', JSON.stringify(produk));
+    window.dispatchEvent(new Event('umkm-local-changed'));
   }, [produk]);
 
   useEffect(() => {
     localStorage.setItem('umkm_bahan_baku', JSON.stringify(bahanBaku));
+    window.dispatchEvent(new Event('umkm-local-changed'));
   }, [bahanBaku]);
 
   useEffect(() => {
     localStorage.setItem('umkm_riwayat_stok', JSON.stringify(riwayatStok));
+    window.dispatchEvent(new Event('umkm-local-changed'));
   }, [riwayatStok]);
 
   useEffect(() => {
@@ -418,6 +424,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     localStorage.setItem('umkm_pengeluaran', JSON.stringify(pengeluaran));
     window.dispatchEvent(new Event('umkm-local-changed'));
   }, [pengeluaran]);
+
+  useEffect(() => {
+    localStorage.setItem('umkm_kategori', JSON.stringify(kategori));
+    window.dispatchEvent(new Event('umkm-local-changed'));
+  }, [kategori]);
 
   // Role permissions per PRD 3.7.1
   const canAccess = (module: 'dashboard' | 'kasir' | 'pemasukan' | 'pengeluaran' | 'laporan' | 'rekap' | 'stok' | 'pengaturan'): boolean => {
@@ -704,7 +715,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       showToast('Transaksi tidak ditemukan', 'error');
       return;
     }
+    trackDeletion('umkm_transaksi', id);
     setTransaksi(prev => prev.filter(t => t.id !== id));
+    // Also track and remove the linked auto-pemasukan
+    const linkedPem = pemasukan.find(p => p.transaksi_id === id);
+    if (linkedPem) trackDeletion('umkm_pemasukan', linkedPem.id);
     setPemasukan(prev => prev.filter(p => p.transaksi_id !== id));
     if (lastCompletedTrx?.id === id) setLastCompletedTrx(null);
     showToast(`Transaksi ${target.nomor_transaksi} dihapus`, 'info');
@@ -727,6 +742,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const deleteProduk = (id: string) => {
+    trackDeletion('umkm_produk', id);
     setProduk(prev => prev.filter(p => p.id !== id));
     showToast('Produk berhasil dihapus', 'info');
   };
@@ -743,6 +759,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const deletePemasukan = (id: string) => {
+    trackDeletion('umkm_pemasukan', id);
     setPemasukan(prev => prev.filter(p => p.id !== id));
     showToast('Catatan pemasukan dihapus', 'info');
   };
@@ -795,6 +812,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const deletePengeluaran = (id: string) => {
+    trackDeletion('umkm_pengeluaran', id);
     setPengeluaran(prev => prev.filter(p => p.id !== id));
     showToast('Catatan pengeluaran dihapus', 'info');
   };
@@ -818,6 +836,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const deleteBahanBaku = (id: string) => {
+    trackDeletion('umkm_bahan_baku', id);
     setBahanBaku(prev => prev.filter(b => b.id !== id));
     showToast('Bahan baku dihapus', 'info');
   };
@@ -932,6 +951,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const deleteKategori = (id: string) => {
+    trackDeletion('umkm_kategori', id);
     setKategori(prev => prev.filter(k => k.id !== id));
     showToast('Kategori dihapus', 'info');
   };
@@ -986,6 +1006,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return;
     }
     const target = users.find(u => u.id === id);
+    trackDeletion('umkm_users', id);
     setUsers(prev => prev.filter(u => u.id !== id));
     showToast(`Pengguna "${target?.nama || id}" dihapus`, 'info');
   };

@@ -20,6 +20,44 @@ const KEYS = [
   'umkm_kategori',
 ] as const;
 
+// Keys that hold arrays with 'id' field — used for merge
+const ARRAY_KEYS = [
+  'umkm_users',
+  'umkm_produk',
+  'umkm_bahan_baku',
+  'umkm_riwayat_stok',
+  'umkm_transaksi',
+  'umkm_pemasukan',
+  'umkm_pengeluaran',
+  'umkm_kategori',
+] as const;
+
+// Track which ids have been explicitly deleted locally — survives until next push
+const DELETED_IDS_KEY = 'umkm_deleted_ids';
+
+function getDeletedIds(): Record<string, string[]> {
+  try {
+    const raw = localStorage.getItem(DELETED_IDS_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch { return {}; }
+}
+
+function addDeletedId(storeKey: string, id: string) {
+  const map = getDeletedIds();
+  if (!map[storeKey]) map[storeKey] = [];
+  if (!map[storeKey].includes(id)) map[storeKey].push(id);
+  localStorage.setItem(DELETED_IDS_KEY, JSON.stringify(map));
+}
+
+function clearDeletedIds() {
+  localStorage.removeItem(DELETED_IDS_KEY);
+}
+
+// Hook: call from any component that deletes items to track the deletion
+export function trackDeletion(storeKey: string, id: string) {
+  addDeletedId(storeKey, id);
+}
+
 function readLocal(): Record<string, any> {
   const out: Record<string, any> = {};
   for (const k of KEYS) {
@@ -31,20 +69,54 @@ function readLocal(): Record<string, any> {
   return out;
 }
 
-function isNewerLocal(localVal: any, cloudVal: any): boolean {
-  // For arrays: local has more items → keep local (user just added pemasukan/pengeluaran)
-  if (Array.isArray(localVal) && Array.isArray(cloudVal)) {
-    if (localVal.length > cloudVal.length) return true;
-    // if same length but local has newer created_at (compare max)
-    if (localVal.length === cloudVal.length && localVal.length > 0) {
-      try {
-        const maxLocal = Math.max(...localVal.map((x:any)=> new Date(x.created_at||x.tanggal||0).getTime()||0));
-        const maxCloud = Math.max(...cloudVal.map((x:any)=> new Date(x.created_at||x.tanggal||0).getTime()||0));
-        if (maxLocal > maxCloud) return true;
-      } catch {}
+/**
+ * Deep-merge two arrays by 'id' field.
+ * - Items in both (same id) → keep the one with the newer created_at/updated_at/tanggal, fallback to local
+ * - Items only in local → keep
+ * - Items only in cloud → keep (unless in deletedIds for that key)
+ */
+function mergeArrays(localArr: any[], cloudArr: any[], deletedIds: string[]): any[] {
+  const map = new Map<string, any>();
+
+  // Start with cloud items
+  for (const item of cloudArr) {
+    if (item && item.id) {
+      if (deletedIds.includes(item.id)) continue; // skip items deleted locally
+      map.set(item.id, item);
     }
   }
-  return false;
+
+  // Layer local items on top — local wins on conflict if newer or same age
+  for (const item of localArr) {
+    if (!item || !item.id) continue;
+    const existing = map.get(item.id);
+    if (!existing) {
+      map.set(item.id, item);
+    } else {
+      // compare timestamps: prefer newer
+      const localTime = getItemTime(item);
+      const cloudTime = getItemTime(existing);
+      if (localTime >= cloudTime) {
+        map.set(item.id, item);
+      }
+      // else cloud version is newer, keep it
+    }
+  }
+
+  // Sort by created_at descending (newest first) for transaction-like arrays
+  const result = Array.from(map.values());
+  result.sort((a, b) => {
+    const ta = getItemTime(a);
+    const tb = getItemTime(b);
+    return tb - ta; // newest first
+  });
+  return result;
+}
+
+function getItemTime(item: any): number {
+  const t = item.created_at || item.updated_at || item.tanggal;
+  if (!t) return 0;
+  try { return new Date(t).getTime() || 0; } catch { return 0; }
 }
 
 export function useCloudSync() {
@@ -54,7 +126,7 @@ export function useCloudSync() {
   const hasPulledRef = useRef(false);
   const lastHashRef = useRef<string>('');
 
-  // Pull from KV → localStorage (merge, jangan overwrite kalau local lebih baru)
+  // Pull from KV → merge into localStorage
   const pull = async (): Promise<boolean> => {
     try {
       setStatus('syncing');
@@ -77,21 +149,41 @@ export function useCloudSync() {
         setStatus('local');
         return false;
       }
+
       const local = readLocal();
+      const deletedMap = getDeletedIds();
       let changed = false;
-      for (const [k, v] of Object.entries(data)) {
-        const localVal = (local as any)[k];
-        if (localVal !== undefined && isNewerLocal(localVal, v)) {
-          // local lebih baru → jangan timpa, biarkan push yang kirim local ke cloud
-          continue;
-        }
-        const cur = localStorage.getItem(k);
-        const next = JSON.stringify(v);
-        if (cur !== next) {
-          localStorage.setItem(k, next);
-          changed = true;
+
+      for (const [k, cloudVal] of Object.entries(data)) {
+        const localVal = local[k];
+
+        // For array-based keys → merge by id
+        if ((ARRAY_KEYS as readonly string[]).includes(k) && Array.isArray(cloudVal)) {
+          const localArr = Array.isArray(localVal) ? localVal : [];
+          const deletedIds = deletedMap[k] || [];
+          const merged = mergeArrays(localArr, cloudVal, deletedIds);
+          const next = JSON.stringify(merged);
+          const cur = localStorage.getItem(k);
+          if (cur !== next) {
+            localStorage.setItem(k, next);
+            changed = true;
+          }
+        } else {
+          // Object keys (umkm_usaha) — compare updated_at, prefer newer
+          if (localVal && cloudVal && typeof localVal === 'object' && typeof cloudVal === 'object') {
+            const localTime = getItemTime(localVal);
+            const cloudTime = getItemTime(cloudVal);
+            if (localTime > cloudTime) continue; // local is newer, skip
+          }
+          const cur = localStorage.getItem(k);
+          const next = JSON.stringify(cloudVal);
+          if (cur !== next) {
+            localStorage.setItem(k, next);
+            changed = true;
+          }
         }
       }
+
       if (changed) window.dispatchEvent(new Event('umkm-cloud-pulled'));
       setStatus('synced');
       setError(null);
@@ -103,7 +195,7 @@ export function useCloudSync() {
     }
   };
 
-  // Push local → KV (throttle 800ms, bukan 3s)
+  // Push local → KV (throttle 800ms)
   const push = async (): Promise<boolean> => {
     if (Date.now() - lastPushRef.current < 800) return false;
     lastPushRef.current = Date.now();
@@ -127,6 +219,8 @@ export function useCloudSync() {
         return false;
       }
       if (!r.ok) throw new Error('POST ' + r.status);
+      // After successful push, clear tracked deletions (cloud now has the correct state)
+      clearDeletedIds();
       setStatus('synced');
       setError(null);
       return true;
@@ -137,14 +231,13 @@ export function useCloudSync() {
     }
   };
 
-  // Initial pull once
+  // Initial pull once, then push if nothing to pull
   useEffect(() => {
     if (hasPulledRef.current) return;
     hasPulledRef.current = true;
     pull().then((didPull) => {
-      if (!didPull) {
-        setTimeout(() => push(), 800);
-      }
+      // Always push after first pull to ensure cloud gets any local-only data
+      setTimeout(() => push(), 800);
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
